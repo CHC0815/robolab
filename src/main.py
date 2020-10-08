@@ -10,6 +10,8 @@ from communication import Communication
 from odometry import Odometry
 from planet import Direction, Planet
 
+from controlls.test import RoboTest
+
 client = None  # DO NOT EDIT
 
 
@@ -36,6 +38,9 @@ def run():
     # ADD YOUR OWN IMPLEMENTATION HEREAFTER.
 
     print("Hello World!")
+    
+    r = RoboTest()
+    r.test()
 
 
 # DO NOT EDIT
