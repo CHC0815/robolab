@@ -10,7 +10,7 @@ from communication import Communication
 from odometry import Odometry
 from planet import Direction, Planet
 
-from controlls.test import RoboTest
+from controlls.Robot import Robot
 
 client = None  # DO NOT EDIT
 
@@ -39,8 +39,9 @@ def run():
 
     print("Hello World!")
     
-    r = RoboTest()
-    r.test()
+    r = Robot()
+    # r.test()
+    r.readLight()
 
 
 # DO NOT EDIT
