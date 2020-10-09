@@ -48,12 +48,16 @@ class Robot():
     def scanNode(self):
         print('Scanning node...')
 
+    """
+    Gibt den aktuellen Helligkeitswert zurück (Die Summe der Einzelkanäle)
+    :return int
+    """
     def readLight(self):
         r = self.cs.value(0)
         g = self.cs.value(1)
         b = self.cs.value(2)
         val = (r + g + b) / 3
-        return val
+        return int(val)
 
     def run(self):
         self.calcOffsets()
@@ -62,8 +66,10 @@ class Robot():
             self.isCalibrated = True
 
         self.lineFolower()
-
-
+        self.moveCm(5)
+        time.sleep(1)
+        self.rotateByDeg(360)
+    
     # calibrates colors in following order: red, blue, white, black
     def calibrate(self):
         while(self.readDistance() > 5):
@@ -86,6 +92,10 @@ class Robot():
         self.black = self.readColor()
         print(self.black)
 
+
+    """
+    Bestimmt die Werte, sodass alle Farbkanäle bei Weiß den selben Wert haben
+    """
     def calcOffsets(self):
         r = self.white[0]
         g = self.white[1]
@@ -95,6 +105,10 @@ class Robot():
         self.g_offset = g / b
         self.b_offset = 1 
 
+    """
+    Prüft ob die gemessene Farbe Blau ist
+    :return bool
+    """
     def checkForBlue(self):
         color = self.readColor()
         color[0] *= self.r_offset
@@ -111,6 +125,10 @@ class Robot():
             return True
         return False
 
+    """
+    Prüft ob die gemessene Farbe rot ist
+    :return bool
+    """
     def checkForRed(self):
         color = self.readColor()
         color[0] *= self.r_offset
@@ -127,7 +145,10 @@ class Robot():
             return True
         
         return False
-
+    """
+    Methode um einer Linie zu folgen
+    springt zurück wenn ein Knoten gefunden wurde
+    """
     def lineFolower(self):
         self.m_left.speed_sp = 0
         self.m_right.speed_sp = 0
@@ -144,6 +165,7 @@ class Robot():
                 lightValue = self.readLight()
                 powerLeft, powerRight = self.PID.update(lightValue)
 
+                # Limitiert die Geschwindigkeit auf ein Maximum
                 if powerLeft > 1000:
                     powerLeft = 1000
                 if powerRight > 1000:
@@ -153,43 +175,95 @@ class Robot():
                 if powerRight < -1000:
                     powerRight = -1000
 
+                # setzt die Aktion für die Werte-Tabelle
                 action = ""
                 if powerLeft > powerRight:
-                    print("turn right")
                     action = "TurnRight"
                 elif powerRight > powerLeft:
-                    print("turn left")
                     action = "TurnLeft"
                 else:
-                    print("forward")
                     action = "Forward"
                 
+                # schreibt Werte in die Tabelle
                 robot_writer.writerow([action, lightValue, powerLeft, powerRight])
 
+                # setzt Motorparameter
                 self.m_left.speed_sp = powerLeft
                 self.m_right.speed_sp = powerRight
                 self.m_left.command = "run-forever"
                 self.m_right.command = "run-forever"
 
-    def test(self):
-        self.move_forward(100)
-        while(self.readDistance() > 10):
-            pass
-        self.m_right.stop()
-        self.m_left.stop()
-        print(self.readDistance())
-        
-    def readDistance(self):
-        dist = self.us.distance_centimeters
-        #time.sleep(0.25)
-        return dist
 
+    """
+    Gibt die aktuelle Entfernung des Roboters über den Ultraschallsensor zurück
+    :return float
+    """
+    def readDistance(self):
+        return self.us.distance_centimeters
+
+    """
+    Gibt die aktuellen Werte des Farbsensors zurück
+    :return [int, int, int]
+    """
     def readColor(self):
         return [self.cs.value(0), self.cs.value(1), self.cs.value(2)]
 
-    def move_forward(self, speed):
-        self.m_left.speed_sp = speed
-        self.m_right.speed_sp = speed
-        self.m_left.command = "run-forever"
-        self.m_right.command = "run-forever"
+    """
+    Eine Methode die den Roboter um einen bestimmten Winkel dreht
+    :param int
+    :return void
+    """
+    def rotateByDeg(self, angle):
+        diameter = 55 #mm
+        pi = 3.14159265359
+        wheel_dist_per_rot = diameter * pi
+        robot_dist_per_rot = self.wheelbase * pi
+
+        
+        degrees = ((robot_dist_per_rot * (angle / 360)) / wheel_dist_per_rot) * 360
+
+        print(degrees)
+        self.m_left.reset()
+        self.m_right.reset()
+
+        self.m_left.stop_action = 'brake'
+        self.m_right.stop_action = 'brake'
+
+        self.m_left.position_sp += int(degrees)
+        self.m_right.position_sp -= int(degrees)
+
+        self.m_left.speed_sp = 100
+        self.m_right.speed_sp = 100
+
+        self.m_left.command = 'run-to-abs-pos'
+        self.m_right.command = 'run-to-abs-pos'
+
+    """
+    Eine Methode die den Roboter um eine bestimmte Länge nach vorn bewegt
+    :param int
+    :return void
+    """
+    def moveCm(self, cm):
+        diameter = 55 # mm
+        pi = 3.14159265359
+        wheel_dist_per_rot = diameter * pi / 10
+
+        degrees = (360 / wheel_dist_per_rot) * cm
+
+        print(degrees)
+        self.m_left.reset()
+        self.m_right.reset()
+
+        self.m_left.stop_action = 'brake'
+        self.m_right.stop_action = 'brake'
+
+        self.m_left.position_sp += int(degrees)
+        self.m_right.position_sp += int(degrees)
+
+        self.m_left.speed_sp = 100
+        self.m_right.speed_sp = 100
+
+        self.m_left.command = 'run-to-abs-pos'
+        self.m_right.command = 'run-to-abs-pos'
+        time.sleep(2)
 
