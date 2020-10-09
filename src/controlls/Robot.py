@@ -7,11 +7,17 @@ import time
 from controlls.PID import PID
 import csv
 
+class States():
+    scanNode = 0
+    followLine = 1
 
 class Robot():
     def __init__(self):
+        self.isCalibrated = True
         self.PID = PID()
         self.wheelbase = 152 # mm
+
+        self.state = States.followLine # TODO implement some type of state machine
 
         # Ultraschallsensor
         self.us = ev3.UltrasonicSensor()
@@ -28,12 +34,67 @@ class Robot():
         self.m_left.speed_sp = 0
         self.m_right.speed_sp = 0
         # Farbsensor
-        self.cs = ev3.ColorSensor() # TODO - RAW mode 
-        self.cs.mode = 'COL-COLOR'
+        self.cs = ev3.ColorSensor() 
+        self.cs.mode = 'RGB-RAW'
+        self.cs.bin_data("hhh")
+        self.red = [144, 55, 17]
+        self.blue = [30, 161, 115]
+        self.white = [286, 494, 252]
+        self.black = [0, 0, 0]
+
+    def scanNode(self):
+        print('Scanning node...')
 
     def readLight(self):
-        self.cs.mode = 'COL-REFLECT'
-        return self.cs.value()
+        #self.cs.mode = 'COL-REFLECT'
+        #return self.cs.value()
+        r = self.cs.value(0)
+        g = self.cs.value(1)
+        b = self.cs.value(2)
+
+        whiteOffset = -40
+        max = ((self.white[0] + self.white[1] + self.white[2]) / 3) + whiteOffset
+        min = (self.black[0] + self.black[1] + self.black[2]) / 3
+        diff = max - min
+
+        val = (r + g + b) / 3
+        # relative range
+        return ((val - min) * 100) / (diff)
+
+    def run(self):
+        #if not self.isCalibrated:
+        #    self.calibrate()
+        #    self.isCalibrated = True
+#
+        #self.lineFolower()
+        #self.cs.mode = 'COL-REFLECT'
+        while True:
+            print(self.readLight())
+
+
+    # calibrates colors in following order: red, blue, white, black
+    def calibrate(self):
+        while(self.readDistance() > 5):
+            pass 
+        self.red = self.readColor()
+        print(self.red)
+        time.sleep(2)
+        while(self.readDistance() > 5):
+            pass
+        self.blue = self.readColor()
+        print(self.blue)
+        time.sleep(2)
+        while(self.readDistance() > 5):
+            pass
+        self.white = self.readColor()
+        print(self.white)
+        time.sleep(2)
+        while(self.readDistance() > 5):
+            pass
+        self.black = self.readColor()
+        print(self.black)
+
+
 
     def lineFolower(self):
         self.m_left.speed_sp = 0
@@ -83,12 +144,11 @@ class Robot():
         
     def readDistance(self):
         dist = self.us.distance_centimeters
-        print(dist)
         #time.sleep(0.25)
         return dist
 
     def readColor(self):
-        return self.cs.value()
+        return [self.cs.value(0), self.cs.value(1), self.cs.value(2)]
 
     def move_forward(self, speed):
         self.m_left.speed_sp = speed

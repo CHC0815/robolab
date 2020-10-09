@@ -38,9 +38,9 @@ def run():
     # ADD YOUR OWN IMPLEMENTATION HEREAFTER.
 
     print("Hello World!")
-    
+
     r = Robot()
-    r.lineFolower()
+    r.run()
 
 
 # DO NOT EDIT
