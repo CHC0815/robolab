@@ -1,10 +1,10 @@
 class PID:
     def __init__(self):
-        self.Kp = 1000
-        self.Ki = 100
-        self.Kd = 10000
-        self.offset = 45 # 35
-        self.Tp = 50
+        self.Kp = 20
+        self.Ki = 1
+        self.Kd = 10
+        self.offset = 200
+        self.Tp = 100
         self.integral = 0
         self.lastError = 0
         self.derivative = 0

@@ -38,38 +38,30 @@ class Robot():
         self.cs.mode = 'RGB-RAW'
         self.cs.bin_data("hhh")
         self.red = [144, 55, 17]
-        self.blue = [30, 161, 115]
+        self.blue = [30, 161, 115] # [235, 415, 217]
         self.white = [286, 494, 252]
         self.black = [0, 0, 0]
+        self.r_offset = 0
+        self.g_offset = 0
+        self.b_offset = 0
 
     def scanNode(self):
         print('Scanning node...')
 
     def readLight(self):
-        #self.cs.mode = 'COL-REFLECT'
-        #return self.cs.value()
         r = self.cs.value(0)
         g = self.cs.value(1)
         b = self.cs.value(2)
-
-        whiteOffset = -40
-        max = ((self.white[0] + self.white[1] + self.white[2]) / 3) + whiteOffset
-        min = (self.black[0] + self.black[1] + self.black[2]) / 3
-        diff = max - min
-
         val = (r + g + b) / 3
-        # relative range
-        return ((val - min) * 100) / (diff)
+        return val
 
     def run(self):
-        #if not self.isCalibrated:
-        #    self.calibrate()
-        #    self.isCalibrated = True
-#
-        #self.lineFolower()
-        #self.cs.mode = 'COL-REFLECT'
-        while True:
-            print(self.readLight())
+        self.calcOffsets()
+        if not self.isCalibrated:
+            self.calibrate()
+            self.isCalibrated = True
+
+        self.lineFolower()
 
 
     # calibrates colors in following order: red, blue, white, black
@@ -94,7 +86,47 @@ class Robot():
         self.black = self.readColor()
         print(self.black)
 
+    def calcOffsets(self):
+        r = self.white[0]
+        g = self.white[1]
+        b = self.white[2]
 
+        self.r_offset = r / b
+        self.g_offset = g / b
+        self.b_offset = 1 
+
+    def checkForBlue(self):
+        color = self.readColor()
+        color[0] *= self.r_offset
+        color[1] *= self.g_offset
+        color[2] *= self.b_offset
+
+        sum = color[0] + color[1] + color[2]
+        blueThreshold = 0.22
+
+        if sum == 0:
+            return False
+
+        if color[2] / sum >= blueThreshold:
+            return True
+        return False
+
+    def checkForRed(self):
+        color = self.readColor()
+        color[0] *= self.r_offset
+        color[1] *= self.g_offset
+        color[2] *= self.b_offset
+
+        sum = color[0] + color[1] + color[2]
+        redThreshold = 0.45
+
+        if sum == 0:
+            return False
+        print(color[0] / sum)
+        if color[0] / sum >= redThreshold:
+            return True
+        
+        return False
 
     def lineFolower(self):
         self.m_left.speed_sp = 0
@@ -104,6 +136,11 @@ class Robot():
             robot_writer = csv.writer(robot_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             robot_writer.writerow(['Action', 'LightValue', 'MotorSpeedLeft', 'MotorSpeedRight'])
             while True:
+                
+                if self.checkForBlue() or self.checkForRed():
+                    ev3.Sound.beep()
+                    return
+
                 lightValue = self.readLight()
                 powerLeft, powerRight = self.PID.update(lightValue)
 
