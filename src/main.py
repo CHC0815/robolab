@@ -40,8 +40,7 @@ def run():
     print("Hello World!")
     
     r = Robot()
-    # r.test()
-    r.readLight()
+    r.lineFolower()
 
 
 # DO NOT EDIT

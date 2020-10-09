@@ -4,8 +4,13 @@
 import ev3dev.ev3 as ev3
 import time
 
+from controlls.PID import PID
+import csv
+
+
 class Robot():
     def __init__(self):
+        self.PID = PID()
         self.wheelbase = 152 # mm
 
         # Ultraschallsensor
@@ -18,19 +23,55 @@ class Robot():
         self.m_right.reset()
         self.m_left.stop_action = "brake"
         self.m_right.stop_action = "brake"
+        self.m_left.command = "run-forever"
+        self.m_right.command = "run-forever"
+        self.m_left.speed_sp = 0
+        self.m_right.speed_sp = 0
         # Farbsensor
-        self.cs = ev3.ColorSensor()
+        self.cs = ev3.ColorSensor() # TODO - RAW mode 
         self.cs.mode = 'COL-COLOR'
 
     def readLight(self):
         self.cs.mode = 'COL-REFLECT'
-        for i in range(1, 10):
-            print(self.cs.value())
-        ev3.Sound.beep()
+        return self.cs.value()
 
-        # white = 70
-        # black = 6/7
+    def lineFolower(self):
+        self.m_left.speed_sp = 0
+        self.m_right.speed_sp = 0
 
+        with open('/home/robot/src/robot_data.csv', mode='w') as robot_file:
+            robot_writer = csv.writer(robot_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            robot_writer.writerow(['Action', 'LightValue', 'MotorSpeedLeft', 'MotorSpeedRight'])
+            while True:
+                lightValue = self.readLight()
+                powerLeft, powerRight = self.PID.update(lightValue)
+
+                if powerLeft > 1000:
+                    powerLeft = 1000
+                if powerRight > 1000:
+                    powerRight = 1000
+                if powerLeft < -1000:
+                    powerLeft = -1000
+                if powerRight < -1000:
+                    powerRight = -1000
+
+                action = ""
+                if powerLeft > powerRight:
+                    print("turn right")
+                    action = "TurnRight"
+                elif powerRight > powerLeft:
+                    print("turn left")
+                    action = "TurnLeft"
+                else:
+                    print("forward")
+                    action = "Forward"
+                
+                robot_writer.writerow([action, lightValue, powerLeft, powerRight])
+
+                self.m_left.speed_sp = powerLeft
+                self.m_right.speed_sp = powerRight
+                self.m_left.command = "run-forever"
+                self.m_right.command = "run-forever"
 
     def test(self):
         self.move_forward(100)
