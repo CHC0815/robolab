@@ -5,6 +5,7 @@ import ev3dev.ev3 as ev3
 import time
 import logging
 from controlls.PID import PID
+from odometry import Odometry
 import csv
 
 logger = logging.getLogger('Robot')
@@ -14,7 +15,7 @@ class Robot():
         self.isCalibrated = True
         self.PID = PID()
         self.wheelbase = 152 # mm
-
+        self.odometry = Odometry()
 
         # ultra sonic sensor
         self.us = ev3.UltrasonicSensor()
@@ -93,6 +94,9 @@ class Robot():
 
             # found node
             if status == 1:
+                # calc current position 
+                # self.odometry.calc()
+
                 self.moveCm(4)
                 time.sleep(1)
                 pathes  = self.scanNode()
@@ -217,6 +221,9 @@ class Robot():
 
                 lightValue = self.readLight()
                 powerLeft, powerRight = self.PID.update(lightValue)
+
+
+                # self.odometry.addData(self.m_left.position, self.m_right.position)
 
                 # limits the velocity
                 if powerLeft > 1000:
