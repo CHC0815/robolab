@@ -5,20 +5,17 @@ import ev3dev.ev3 as ev3
 import time
 import logging
 from controlls.PID import PID
+from odometry import Odometry
 import csv
 
 logger = logging.getLogger('Robot')
-
-class States():
-    scanNode = 0
-    followLine = 1
 
 class Robot():
     def __init__(self):
         self.isCalibrated = True
         self.PID = PID()
         self.wheelbase = 152 # mm
-
+        self.odometry = Odometry()
 
         # ultra sonic sensor
         self.us = ev3.UltrasonicSensor()
@@ -54,31 +51,31 @@ class Robot():
         self.b_offset = 0
 
 
-    """
-    scans a node and returns an array of booleans
-    :return [bool, bool, bool, bool]
-    """
     def scanNode(self):
-        print('Scanning node...')
+        """
+        scans a node and returns an array of booleans
+        :return [bool, bool, bool, bool]
+        """
+        logger.debug('Scanning node...')
+        self.rotateByDegGyro(45)
+        is_right = self.rotateByDegGyro(90)
+        time.sleep(0.1)
+        is_bottom = self.rotateByDegGyro(90) # path from where the robot came, should always be true
+        time.sleep(0.1)
+        is_left = self.rotateByDegGyro(90)
+        time.sleep(0.1)
+        is_top = self.rotateByDegGyro(90)
+        time.sleep(0.1)
         self.rotateByDegGyro(45, False)
-        is_right = self.rotateByDegGyro(90, True)
-        time.sleep(0.5)
-        is_bottom = self.rotateByDegGyro(90, True) # path from where the robot came, should always be true
-        time.sleep(0.5)
-        is_left = self.rotateByDegGyro(90, True)
-        time.sleep(0.5)
-        is_top = self.rotateByDegGyro(90, True)
-        time.sleep(0.5)
-        self.rotateByDegGyro(45, False, False)
-        print('End scanning node...')
-        print('Right: ' + is_right + ' bottom: ' + is_bottom + ' left: ' + is_left + ' top: ' + is_top)
+        logger.debug('End scanning node...')
+        logger.debug('Right: ' + str(is_right) + ' bottom: ' + str(is_bottom) + ' left: ' + str(is_left) + ' top: ' + str(is_top))
         return [is_right, is_bottom, is_left, is_top]
 
-    """
-    returns the sum of the single color channels
-    :return int
-    """
     def readLight(self):
+        """
+        returns the sum of the single color channels
+        :return int
+        """
         r = self.cs.value(0)
         g = self.cs.value(1)
         b = self.cs.value(2)
@@ -91,22 +88,41 @@ class Robot():
             self.calibrate()
             self.isCalibrated = True
 
+
         while True:
-            self.lineFolower()
-            self.moveCm(5)
-            time.sleep(1)
-            pathes  = self.scanNode()
-            if(pathes[0]):
-                self.rotateByDegGyro(85, False)
-            elif pathes[2]:
-                self.rotateByDegGyro(265, False)
-            elif pathes[3]:
-                self.rotateByDegGyro(5, False, False)
+            status = self.lineFolower()
+
+            # found node
+            if status == 1:
+                # calc current position 
+                # self.odometry.calc()
+
+                self.moveCm(4)
+                time.sleep(1)
+                pathes  = self.scanNode()
+                if(pathes[0]):
+                    self.rotateToLine()
+                    self.rotateByDegGyro(5, False)
+                elif pathes[2]:
+                    self.rotateByDegGyro(200)
+                    self.rotateToLine()
+                    self.rotateByDegGyro(5, False)
+                elif pathes[3]:
+                    self.rotateByDegGyro(5, False)
+                else:
+                    # dead end - return 
+                    self.rotateByDegGyro(100)
+                    self.rotateToLine()
+                    self.rotateByDegGyro(5, False)
+            
+            # found obstacle 
+            elif status == 2:
+                ev3.Sound.beep()
+                self.rotateByDegGyro(10)
+                self.rotateToLine()
+
             else:
-                # dead end - return 
-                self.rotateByDegGyro(175, False)
-
-
+                print("Shit")
 
 
     # calibrates colors in following order: red, blue, white, black
@@ -131,11 +147,10 @@ class Robot():
         self.black = self.readColor()
         print(self.black)
 
-
-    """
-    Findes an offset for the color channels
-    """
     def calcOffsets(self):
+        """
+        Findes an offset for the color channels
+        """
         r = self.white[0]
         g = self.white[1]
         b = self.white[2]
@@ -144,11 +159,11 @@ class Robot():
         self.g_offset = g / b
         self.b_offset = 1 
 
-    """
-    Checks whether the current color is blue
-    :return bool
-    """
     def checkForBlue(self):
+        """
+        Checks whether the current color is blue
+        :return bool
+        """
         color = self.readColor()
         color[0] *= self.r_offset
         color[1] *= self.g_offset
@@ -164,11 +179,11 @@ class Robot():
             return True
         return False
 
-    """
-    Checks whether the current color is red
-    :return bool
-    """
     def checkForRed(self):
+        """
+        Checks whether the current color is red
+        :return bool
+        """
         color = self.readColor()
         color[0] *= self.r_offset
         color[1] *= self.g_offset
@@ -179,16 +194,16 @@ class Robot():
 
         if sum == 0:
             return False
-        print(color[0] / sum)
         if color[0] / sum >= redThreshold:
             return True
         
         return False
-    """
-    method to follow a line
-    return if it found a node
-    """
     def lineFolower(self):
+        """
+        method to follow a line
+        return if it found a node
+        :return int: status
+        """
         self.m_left.speed_sp = 0
         self.m_right.speed_sp = 0
 
@@ -197,12 +212,18 @@ class Robot():
             robot_writer.writerow(['Action', 'LightValue', 'MotorSpeedLeft', 'MotorSpeedRight'])
             while True:
                 
+                if self.readDistance() < 10:
+                    return 2
+
                 if self.checkForBlue() or self.checkForRed():
                     ev3.Sound.beep()
-                    return
+                    return 1
 
                 lightValue = self.readLight()
                 powerLeft, powerRight = self.PID.update(lightValue)
+
+
+                # self.odometry.addData(self.m_left.position, self.m_right.position)
 
                 # limits the velocity
                 if powerLeft > 1000:
@@ -232,26 +253,26 @@ class Robot():
                 self.m_right.command = "run-forever"
 
 
-    """
-    Gibt die aktuelle Entfernung des Roboters über den Ultraschallsensor zurück
-    :return float
-    """
     def readDistance(self):
+        """
+        returns the current distance
+        :return float
+        """
         return self.us.distance_centimeters
 
-    """
-    Gibt die aktuellen Werte des Farbsensors zurück
-    :return [int, int, int]
-    """
     def readColor(self):
+        """
+        returns the current color values
+        :return [int, int, int]
+        """
         return [self.cs.value(0), self.cs.value(1), self.cs.value(2)]
 
-    """
-    Eine Methode die den Roboter um einen bestimmten Winkel dreht
-    :param int
-    :return void
-    """
     def rotateByDeg(self, angle):
+        """
+        rotates the robot by an angle
+        :param int
+        :return void
+        """
         diameter = 55 #mm
         pi = 3.14159265359
         wheel_dist_per_rot = diameter * pi
@@ -276,12 +297,12 @@ class Robot():
         self.m_left.command = 'run-to-abs-pos'
         self.m_right.command = 'run-to-abs-pos'
 
-    """
-    Eine Methode die den Roboter um eine bestimmte Länge nach vorn bewegt
-    :param int
-    :return void
-    """
     def moveCm(self, cm):
+        """
+        moves the robot by n cm
+        :param int
+        :return void
+        """
         diameter = 55 # mm
         pi = 3.14159265359
         wheel_dist_per_rot = diameter * pi / 10
@@ -307,7 +328,13 @@ class Robot():
 
 
 
-    def rotateByDegGyro(self, angle, check, cw = True):
+    def rotateByDegGyro(self, angle, cw = True):
+        """
+        rotates the robot and checks for path
+        :param int: angle in degrees
+        :param bool: clockwise or ccw
+        :return bool
+        """
         startAngle = self.gyro.value()
 
         self.m_left.reset()
@@ -326,19 +353,35 @@ class Robot():
         if cw:
             while (self.gyro.value() < startAngle + angle):
                 #schaut ob es einen Weg gibt
-                if check:
-                    if self.readLight() > 200:
-                        isPath = True
+                if self.readLight() < 200:
+                    isPath = True
         else:
             while (self.gyro.value() > startAngle - angle):
                 #schaut ob es einen Weg gibt
-                if check:
-                    if self.readLight() > 200:
-                        isPath = True
+                if self.readLight() < 200:
+                    isPath = True
 
 
         self.m_left.stop()
         self.m_right.stop()
 
         return isPath
+    
+    def rotateToLine(self, cw = True):
+        self.m_left.reset()
+        self.m_right.reset()
 
+        self.m_left.stop_action = 'brake'
+        self.m_right.stop_action = 'brake'
+
+        self.m_left.speed_sp =  100 if cw else -100
+        self.m_right.speed_sp = -100 if cw else 100
+
+        self.m_left.command = 'run-forever'
+        self.m_right.command = 'run-forever'
+
+        while self.readLight() > 200:
+            pass
+            
+        self.m_left.stop()
+        self.m_right.stop()
