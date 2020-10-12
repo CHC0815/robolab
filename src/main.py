@@ -39,9 +39,9 @@ def run():
 
     print("Hello World!")
 
+    logger.debug("run motorcontrol in main")
     r = Robot()
     r.run()
-    logger.debug("run motorcontrol in main")
 
 
     while True:
