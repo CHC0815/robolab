@@ -9,10 +9,6 @@ import csv
 
 logger = logging.getLogger('Robot')
 
-class States():
-    scanNode = 0
-    followLine = 1
-
 class Robot():
     def __init__(self):
         self.isCalibrated = True
@@ -62,13 +58,13 @@ class Robot():
         logger.debug('Scanning node...')
         self.rotateByDegGyro(45)
         is_right = self.rotateByDegGyro(90)
-        time.sleep(0.5)
+        time.sleep(0.1)
         is_bottom = self.rotateByDegGyro(90) # path from where the robot came, should always be true
-        time.sleep(0.5)
+        time.sleep(0.1)
         is_left = self.rotateByDegGyro(90)
-        time.sleep(0.5)
+        time.sleep(0.1)
         is_top = self.rotateByDegGyro(90)
-        time.sleep(0.5)
+        time.sleep(0.1)
         self.rotateByDegGyro(45, False)
         logger.debug('End scanning node...')
         logger.debug('Right: ' + str(is_right) + ' bottom: ' + str(is_bottom) + ' left: ' + str(is_left) + ' top: ' + str(is_top))
@@ -93,26 +89,36 @@ class Robot():
 
 
         while True:
-            self.lineFolower()
-            self.moveCm(4)
-            time.sleep(1)
-            pathes  = self.scanNode()
-            if(pathes[0]):
+            status = self.lineFolower()
+
+            # found node
+            if status == 1:
+                self.moveCm(4)
+                time.sleep(1)
+                pathes  = self.scanNode()
+                if(pathes[0]):
+                    self.rotateToLine()
+                    self.rotateByDegGyro(5, False)
+                elif pathes[2]:
+                    self.rotateByDegGyro(200)
+                    self.rotateToLine()
+                    self.rotateByDegGyro(5, False)
+                elif pathes[3]:
+                    self.rotateByDegGyro(5, False)
+                else:
+                    # dead end - return 
+                    self.rotateByDegGyro(100)
+                    self.rotateToLine()
+                    self.rotateByDegGyro(5, False)
+            
+            # found obstacle 
+            elif status == 2:
+                ev3.Sound.beep()
+                self.rotateByDegGyro(10)
                 self.rotateToLine()
-                self.rotateByDegGyro(5, False)
-            elif pathes[2]:
-                self.rotateByDegGyro(200)
-                self.rotateToLine()
-                self.rotateByDegGyro(5, False)
-            elif pathes[3]:
-                self.rotateByDegGyro(5, False)
+
             else:
-                # dead end - return 
-                self.rotateByDegGyro(100)
-                self.rotateToLine()
-                self.rotateByDegGyro(5, False)
-
-
+                print("Shit")
 
 
     # calibrates colors in following order: red, blue, white, black
@@ -136,7 +142,6 @@ class Robot():
             pass
         self.black = self.readColor()
         print(self.black)
-
 
     def calcOffsets(self):
         """
@@ -185,7 +190,6 @@ class Robot():
 
         if sum == 0:
             return False
-        print(color[0] / sum)
         if color[0] / sum >= redThreshold:
             return True
         
@@ -194,6 +198,7 @@ class Robot():
         """
         method to follow a line
         return if it found a node
+        :return int: status
         """
         self.m_left.speed_sp = 0
         self.m_right.speed_sp = 0
@@ -203,9 +208,12 @@ class Robot():
             robot_writer.writerow(['Action', 'LightValue', 'MotorSpeedLeft', 'MotorSpeedRight'])
             while True:
                 
+                if self.readDistance() < 10:
+                    return 2
+
                 if self.checkForBlue() or self.checkForRed():
                     ev3.Sound.beep()
-                    return
+                    return 1
 
                 lightValue = self.readLight()
                 powerLeft, powerRight = self.PID.update(lightValue)
@@ -338,12 +346,12 @@ class Robot():
         if cw:
             while (self.gyro.value() < startAngle + angle):
                 #schaut ob es einen Weg gibt
-                if self.readLight() > 200:
+                if self.readLight() < 200:
                     isPath = True
         else:
             while (self.gyro.value() > startAngle - angle):
                 #schaut ob es einen Weg gibt
-                if self.readLight() > 200:
+                if self.readLight() < 200:
                     isPath = True
 
 

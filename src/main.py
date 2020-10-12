@@ -39,6 +39,7 @@ def run():
 
     print("Hello World!")
 
+    logger.debug('-----------------------------------------------------')
     logger.debug("run motorcontrol in main")
     r = Robot()
     r.run()
