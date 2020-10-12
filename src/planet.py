@@ -3,7 +3,9 @@
 # Attention: Do not import the ev3dev.ev3 module in this file
 from enum import IntEnum, unique
 from typing import List, Tuple, Dict, Union
+import logging
 
+logger = logging.getLogger('Planet')
 
 @unique
 class Direction(IntEnum):

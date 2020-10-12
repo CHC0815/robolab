@@ -41,6 +41,7 @@ def run():
 
     r = Robot()
     r.run()
+    logger.debug("run motorcontrol in main")
 
 
     while True:

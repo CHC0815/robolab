@@ -4,18 +4,42 @@
 import json
 import platform
 import ssl
+import logging
+from threading import Thread
+
+logger = logging.getLogger('communication')
+
+
+
+#TODO comm init and add config
 
 # Fix: SSL certificate problem on macOS
 if all(platform.mac_ver()):
     from OpenSSL import SSL
 
+class Communication(Thread):
+    """
+        Communication modul helps to interact with the mothership
+    """
 
-class Communication:
+def __init__():
     """
-    Class to hold the MQTT client communication
-    Feel free to add functions and update the constructor to satisfy your requirements and
-    thereby solve the task according to the specifications
+   needed objects
+        :param mqtt_client: an mqtt client (paho-mqtt)
+        :param integer group_id: the group id
+        :param str server: the domain of the mqtt server
+        :param integer port: the port of the mqtt server
+        :param integer qos: the port of the mqtt server
+        :param str password: the password for the server
     """
+
+    #Init Threading
+    Thread.__init__(self)
+
+    logger.debug("comm setup")
+
+    if mqtt_client is None:
+        raise ValueError('Invalid mqtt client')
 
     def __init__(self, mqtt_client, logger):
         """
