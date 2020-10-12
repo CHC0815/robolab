@@ -7,9 +7,6 @@ import time
 from controlls.PID import PID
 import csv
 
-class States():
-    scanNode = 0
-    followLine = 1
 
 class Robot():
     def __init__(self):
@@ -17,12 +14,18 @@ class Robot():
         self.PID = PID()
         self.wheelbase = 152 # mm
 
-        self.state = States.followLine # TODO implement some type of state machine
 
-        # Ultraschallsensor
+        # ultra sonic sensor
         self.us = ev3.UltrasonicSensor()
         self.us.mode = 'US-DIST-CM'
-        # Motoren
+        # Gyro Sensor
+        self.gyro = ev3.GyroSensor()
+        self.gyro.mode = 'GYRO-CAL'
+        time.sleep(0.1)
+        self.gyro.mode = 'GYRO-CAL'
+        time.sleep(0.1)
+        self.gyro.mode = 'GYRO-ANG'
+        # motor
         self.m_left = ev3.LargeMotor("outA")
         self.m_right = ev3.LargeMotor("outB")
         self.m_left.reset()
@@ -33,7 +36,7 @@ class Robot():
         self.m_right.command = "run-forever"
         self.m_left.speed_sp = 0
         self.m_right.speed_sp = 0
-        # Farbsensor
+        # color sensor
         self.cs = ev3.ColorSensor() 
         self.cs.mode = 'RGB-RAW'
         self.cs.bin_data("hhh")
@@ -45,11 +48,29 @@ class Robot():
         self.g_offset = 0
         self.b_offset = 0
 
-    def scanNode(self):
-        print('Scanning node...')
 
     """
-    Gibt den aktuellen Helligkeitswert zurück (Die Summe der Einzelkanäle)
+    scans a node and returns an array of booleans
+    :return [bool, bool, bool, bool]
+    """
+    def scanNode(self):
+        print('Scanning node...')
+        self.rotateByDegGyro(45, False)
+        is_right = self.rotateByDegGyro(90, True)
+        time.sleep(0.5)
+        is_bottom = self.rotateByDegGyro(90, True) # path from where the robot came, should always be true
+        time.sleep(0.5)
+        is_left = self.rotateByDegGyro(90, True)
+        time.sleep(0.5)
+        is_top = self.rotateByDegGyro(90, True)
+        time.sleep(0.5)
+        self.rotateByDegGyro(45, False, False)
+        print('End scanning node...')
+        print('Right: ' + is_right + ' bottom: ' + is_bottom + ' left: ' + is_left + ' top: ' + is_top)
+        return [is_right, is_bottom, is_left, is_top]
+
+    """
+    returns the sum of the single color channels
     :return int
     """
     def readLight(self):
@@ -65,11 +86,24 @@ class Robot():
             self.calibrate()
             self.isCalibrated = True
 
-        self.lineFolower()
-        self.moveCm(5)
-        time.sleep(1)
-        self.rotateByDeg(360)
-    
+        while True:
+            self.lineFolower()
+            self.moveCm(5)
+            time.sleep(1)
+            pathes  = self.scanNode()
+            if(pathes[0]):
+                self.rotateByDegGyro(85, False)
+            elif pathes[2]:
+                self.rotateByDegGyro(265, False)
+            elif pathes[3]:
+                self.rotateByDegGyro(5, False, False)
+            else:
+                # dead end - return 
+                self.rotateByDegGyro(175, False)
+
+
+
+
     # calibrates colors in following order: red, blue, white, black
     def calibrate(self):
         while(self.readDistance() > 5):
@@ -94,7 +128,7 @@ class Robot():
 
 
     """
-    Bestimmt die Werte, sodass alle Farbkanäle bei Weiß den selben Wert haben
+    Findes an offset for the color channels
     """
     def calcOffsets(self):
         r = self.white[0]
@@ -106,7 +140,7 @@ class Robot():
         self.b_offset = 1 
 
     """
-    Prüft ob die gemessene Farbe Blau ist
+    Checks whether the current color is blue
     :return bool
     """
     def checkForBlue(self):
@@ -126,7 +160,7 @@ class Robot():
         return False
 
     """
-    Prüft ob die gemessene Farbe rot ist
+    Checks whether the current color is red
     :return bool
     """
     def checkForRed(self):
@@ -146,8 +180,8 @@ class Robot():
         
         return False
     """
-    Methode um einer Linie zu folgen
-    springt zurück wenn ein Knoten gefunden wurde
+    method to follow a line
+    return if it found a node
     """
     def lineFolower(self):
         self.m_left.speed_sp = 0
@@ -165,7 +199,7 @@ class Robot():
                 lightValue = self.readLight()
                 powerLeft, powerRight = self.PID.update(lightValue)
 
-                # Limitiert die Geschwindigkeit auf ein Maximum
+                # limits the velocity
                 if powerLeft > 1000:
                     powerLeft = 1000
                 if powerRight > 1000:
@@ -175,7 +209,6 @@ class Robot():
                 if powerRight < -1000:
                     powerRight = -1000
 
-                # setzt die Aktion für die Werte-Tabelle
                 action = ""
                 if powerLeft > powerRight:
                     action = "TurnRight"
@@ -266,4 +299,41 @@ class Robot():
         self.m_left.command = 'run-to-abs-pos'
         self.m_right.command = 'run-to-abs-pos'
         time.sleep(2)
+
+
+
+    def rotateByDegGyro(self, angle, check, cw = True):
+        startAngle = self.gyro.value()
+
+        self.m_left.reset()
+        self.m_right.reset()
+
+        self.m_left.stop_action = 'brake'
+        self.m_right.stop_action = 'brake'
+
+        self.m_left.speed_sp =  100 if cw else -100
+        self.m_right.speed_sp = -100 if cw else 100
+
+        self.m_left.command = 'run-forever'
+        self.m_right.command = 'run-forever'
+
+        isPath = False
+        if cw:
+            while (self.gyro.value() < startAngle + angle):
+                #schaut ob es einen Weg gibt
+                if check:
+                    if self.readLight() > 200:
+                        isPath = True
+        else:
+            while (self.gyro.value() > startAngle - angle):
+                #schaut ob es einen Weg gibt
+                if check:
+                    if self.readLight() > 200:
+                        isPath = True
+
+
+        self.m_left.stop()
+        self.m_right.stop()
+
+        return isPath
 
