@@ -3,9 +3,11 @@
 
 import ev3dev.ev3 as ev3
 import time
-
+import logging
 from controlls.PID import PID
 import csv
+
+logger = logging.getLogger('Robot')
 
 class States():
     scanNode = 0
