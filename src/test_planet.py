@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-
+ 
 import unittest
+import sys
+
 from planet import Direction, Planet
 
 
@@ -24,8 +26,21 @@ class ExampleTestPlanet(unittest.TestCase):
         """
         # Initialize your data structure here
         self.planet = Planet()
+
+        # paths of the Example Planet
         self.planet.add_path(((0, 0), Direction.NORTH), ((0, 1), Direction.SOUTH), 1)
-        self.planet.add_path(((0, 1), Direction.WEST), ((0, 0), Direction.WEST), 1)
+        self.planet.add_path(((0, 0), Direction.WEST), ((0, 1), Direction.WEST), 3)
+        self.planet.add_path(((0, 0), Direction.EAST), ((1, 0), Direction.WEST), 1)
+        self.planet.add_path(((1, 0), Direction.NORTH), ((2, 2), Direction.SOUTH), 3)
+        self.planet.add_path(((0, 1), Direction.NORTH), ((0, 2), Direction.SOUTH), 1)
+        self.planet.add_path(((0, 2), Direction.EAST), ((2, 2), Direction.WEST), 2)
+        self.planet.add_path(((0, 2), Direction.NORTH), ((0, 3), Direction.SOUTH), 1)
+        self.planet.add_path(((0, 3), Direction.NORTH), ((0, 3), Direction.WEST), 3)
+        self.planet.add_path(((0, 3), Direction.EAST), ((2, 2), Direction.NORTH), 3)
+
+    # def show_test_planet(self):
+        print(self.planet.get_paths())
+        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
 
     @unittest.skip('Example test, should not count in final test results')
     def test_target_not_reachable_with_loop(self):
@@ -48,7 +63,19 @@ class TestRoboLabPlanet(unittest.TestCase):
         """
         # Initialize your data structure here
         self.planet = Planet()
+
         # self.planet.add_path(...)
+        self.planet.add_path(((0, 0), Direction.NORTH), ((0, 1), Direction.SOUTH), 1)
+        self.planet.add_path(((0, 0), Direction.EAST), ((1, 0), Direction.WEST), 1)
+        self.planet.add_path(((0, 1), Direction.EAST), ((1, 2), Direction.SOUTH), 2)
+        self.planet.add_path(((1, 0), Direction.EAST), ((2, 1), Direction.SOUTH), 2)
+        self.planet.add_path(((1, 2), Direction.WEST), ((0, 2), Direction.EAST), 1)
+        self.planet.add_path(((1, 2), Direction.NORTH), ((2, 4), Direction.WEST), 3)
+        self.planet.add_path(((0, 2), Direction.WEST), ((0, 2), Direction.SOUTH), 1)
+        self.planet.add_path(((2, 1), Direction.NORTH), ((2, 3), Direction.SOUTH), 2)
+        self.planet.add_path(((2, 3), Direction.NORTH), ((2, 4), Direction.SOUTH), 1)
+        self.planet.add_path(((0, 4), Direction.WEST), ((0, 4), Direction.EAST), 2)
+        self.planet.add_path(((2, 4), Direction.NORTH), ((0, 4), Direction.NORTH), 4)
 
     def test_integrity(self):
         """
@@ -105,4 +132,8 @@ class TestRoboLabPlanet(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    # unittest.main()
+    ExampleTestPlanet().setUp()
+
+    
+    # p = Planet();
