@@ -1,7 +1,7 @@
 class PID:
     def __init__(self):
         self.Kp = 40
-        self.Ki = 0
+        self.Ki = 1
         self.Kd = 20
         self.offset = 200
         self.Tp = 100

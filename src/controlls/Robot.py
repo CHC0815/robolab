@@ -7,6 +7,8 @@ from controlls.PID import PID
 from odometry import Odometry
 import csv
 
+import Sound as snd
+
 logger = logging.getLogger('Robot')
 
 class Robot():
@@ -92,6 +94,10 @@ class Robot():
 
             # found node
             if status == 1:
+                # play sound
+                snd.play_node()
+                time.sleep(0.5)
+
                 # calc current position 
                 self.odometry.calc()
                 logger.debug('Alpha: ' + str(self.odometry.radToDeg(self.odometry.rot)) + '° Gyro: ' + str(self.gyro.value()) + '°')
@@ -116,7 +122,8 @@ class Robot():
             
             # found obstacle 
             elif status == 2:
-                ev3.Sound.beep()
+                snd.play_obstacle()
+                time.sleep(0.5)
                 self.rotateByDegGyro(10)
                 self.rotateToLine()
 
@@ -220,7 +227,6 @@ class Robot():
                 if self.checkForBlue() or self.checkForRed():
                     self.m_left.stop()
                     self.m_right.stop()
-                    ev3.Sound.beep()
                     return 1
 
                 lightValue = self.readLight()

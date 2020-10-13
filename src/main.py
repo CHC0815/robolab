@@ -12,6 +12,9 @@ from planet import Direction, Planet
 
 from controlls.Robot import Robot
 
+import Sound
+import time
+
 client = None  # DO NOT EDIT
 
 
@@ -42,6 +45,10 @@ def run():
     logger.debug('-----------------------------------------------------')
     logger.debug("run motorcontrol in main")
 
+    
+    ev3.Sound.set_volume(100)
+    Sound.play_startup()
+    time.sleep(1.5)
     r = Robot()
     r.run()
 

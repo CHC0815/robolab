@@ -26,10 +26,10 @@ class Odometry:
 
     def addData(self, left, right, angle):
         data = [left, right, angle]
-        if self.oldEl[0] == 0 and self.oldEl[1] == 0:
-            self.oldEl = data
-        else:
-            self.dataList.append(data)
+        #if self.oldEl[0] == 0 and self.oldEl[1] == 0:
+        #    self.oldEl = data
+        #else:
+        self.dataList.append(data)
     
 
     def calc(self):
@@ -42,6 +42,7 @@ class Odometry:
 
             # alpha = (dist_right / (dist_left + self.wheelbase))
             alpha = (dist_right - dist_left) / self.wheelbase
+            alpha = alpha % 2 * math.pi
             # alpha = self.degToRad(self.oldEl[2] - el[2])
 
             if alpha != 0:
@@ -54,6 +55,7 @@ class Odometry:
             delta_y = math.cos(self.rot + (alpha / 2)) * s
 
             self.rot -= alpha
+            self.rot = self.rot % 2 * math.pi
             pos[0] += delta_x
             pos[1] += delta_y
 

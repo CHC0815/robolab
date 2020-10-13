@@ -2,8 +2,11 @@
 from ev3dev.ev3 import Sound
 
 def play_startup():
-    return Sound.play('start.wav')
+    return Sound.play('/home/robot/src/music/start.wav')
+
+def play_node():
+    return Sound.play('/home/robot/src/music/node.wav')
 
 def play_obstacle():
-    return Sound.play('obstacle.wav')
+    return Sound.play('/home/robot/src/music/obstacle.wav')
 
