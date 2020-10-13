@@ -1,4 +1,3 @@
-
 # 360° = 17.2788 cm
 
 import ev3dev.ev3 as ev3
@@ -88,16 +87,16 @@ class Robot():
             self.calibrate()
             self.isCalibrated = True
 
-
         while True:
             status = self.lineFolower()
 
             # found node
             if status == 1:
                 # calc current position 
-                # self.odometry.calc()
-
-                self.moveCm(4)
+                self.odometry.calc()
+                logger.debug('Alpha: ' + str(self.odometry.radToDeg(self.odometry.rot)) + '° Gyro: ' + str(self.gyro.value()) + '°')
+                logger.debug('Odometry: Position: ' + str(self.odometry.position[0]) + '/' + str(self.odometry.position[1]))
+                self.moveCm(6)
                 time.sleep(1)
                 pathes  = self.scanNode()
                 if(pathes[0]):
@@ -130,22 +129,22 @@ class Robot():
         while(self.readDistance() > 5):
             pass 
         self.red = self.readColor()
-        print(self.red)
+        logger.debug('Red' + str(self.red))
         time.sleep(2)
         while(self.readDistance() > 5):
             pass
         self.blue = self.readColor()
-        print(self.blue)
+        logger.debug('Blue: ' + str(self.blue))
         time.sleep(2)
         while(self.readDistance() > 5):
             pass
         self.white = self.readColor()
-        print(self.white)
+        logger.debug('White: ' + str(self.white))
         time.sleep(2)
         while(self.readDistance() > 5):
             pass
         self.black = self.readColor()
-        print(self.black)
+        logger.debug('Black:' + str(self.black))
 
     def calcOffsets(self):
         """
@@ -198,6 +197,7 @@ class Robot():
             return True
         
         return False
+   
     def lineFolower(self):
         """
         method to follow a line
@@ -213,9 +213,13 @@ class Robot():
             while True:
                 
                 if self.readDistance() < 10:
+                    self.m_left.stop()
+                    self.m_right.stop()
                     return 2
 
                 if self.checkForBlue() or self.checkForRed():
+                    self.m_left.stop()
+                    self.m_right.stop()
                     ev3.Sound.beep()
                     return 1
 
@@ -223,7 +227,7 @@ class Robot():
                 powerLeft, powerRight = self.PID.update(lightValue)
 
 
-                # self.odometry.addData(self.m_left.position, self.m_right.position)
+                self.odometry.addData(self.m_left.position, self.m_right.position, self.gyro.value())
 
                 # limits the velocity
                 if powerLeft > 1000:
@@ -281,7 +285,6 @@ class Robot():
         
         degrees = ((robot_dist_per_rot * (angle / 360)) / wheel_dist_per_rot) * 360
 
-        print(degrees)
         self.m_left.reset()
         self.m_right.reset()
 
@@ -309,7 +312,6 @@ class Robot():
 
         degrees = (360 / wheel_dist_per_rot) * cm
 
-        print(degrees)
         self.m_left.reset()
         self.m_right.reset()
 
@@ -337,14 +339,19 @@ class Robot():
         """
         startAngle = self.gyro.value()
 
+        self.m_left.stop()
+        self.m_right.stop()
+
         self.m_left.reset()
         self.m_right.reset()
 
         self.m_left.stop_action = 'brake'
         self.m_right.stop_action = 'brake'
 
-        self.m_left.speed_sp =  100 if cw else -100
-        self.m_right.speed_sp = -100 if cw else 100
+        speed = 150
+
+        self.m_left.speed_sp =  speed if cw else -speed
+        self.m_right.speed_sp = -speed if cw else speed
 
         self.m_left.command = 'run-forever'
         self.m_right.command = 'run-forever'
@@ -361,6 +368,7 @@ class Robot():
                 if self.readLight() < 200:
                     isPath = True
 
+        self.odometry.addOffset(angle) # add odemetry offset
 
         self.m_left.stop()
         self.m_right.stop()
@@ -368,6 +376,11 @@ class Robot():
         return isPath
     
     def rotateToLine(self, cw = True):
+        startAngle = self.gyro.value()
+
+        self.m_left.stop()
+        self.m_right.stop()
+
         self.m_left.reset()
         self.m_right.reset()
 
@@ -383,5 +396,8 @@ class Robot():
         while self.readLight() > 200:
             pass
             
+        offset = startAngle - self.gyro.value()
+        self.odometry.addOffset(offset)
+        
         self.m_left.stop()
         self.m_right.stop()

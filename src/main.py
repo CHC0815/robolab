@@ -46,9 +46,6 @@ def run():
     r.run()
 
 
-    while True:
-        pass
-
 # DO NOT EDIT
 if __name__ == '__main__':
     run()
