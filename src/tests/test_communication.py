@@ -4,7 +4,7 @@ import unittest.mock
 import paho.mqtt.client as mqtt
 import uuid
 
-from communication import Communication
+import Communication
 
 
 class TestRoboLabCommunication(unittest.TestCase):
