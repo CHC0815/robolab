@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
+import ev3dev.ev3 as ev3
 import logging
 import os
 import paho.mqtt.client as mqtt
 import uuid
 
-import Communication
+from communication import Communication
+from odometry import Odometry
+from planet import Direction, Planet
 
 from controlls.Robot import Robot
 
@@ -41,6 +44,7 @@ def run():
 
     r = Robot()
     r.run()
+
 
     while True:
         pass
