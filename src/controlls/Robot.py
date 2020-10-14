@@ -16,7 +16,7 @@ class Robot():
         self.isCalibrated = True
         self.PID = PID()
         self.wheelbase = 152 # mm
-        self.odometry = Odometry()
+        self.odometry = Odometry(self)
 
         # ultra sonic sensor
         self.us = ev3.UltrasonicSensor()
@@ -93,32 +93,40 @@ class Robot():
             status = self.lineFolower()
 
             # found node
-            if status == 1:
+            if status == 3 or status == 4:
                 # play sound
                 snd.play_node()
                 time.sleep(0.5)
 
                 # calc current position 
-                self.odometry.calc()
+                self.odometry.calc(status)
                 logger.debug('Alpha: ' + str(self.odometry.radToDeg(self.odometry.rot)) + '° Gyro: ' + str(self.gyro.value()) + '°')
-                logger.debug('Odometry: Position: ' + str(self.odometry.position[0]) + '/' + str(self.odometry.position[1]))
+                x, y = self.odometry.getNodeCoord()
+                logger.debug('Current Node: ' + str(x) + '/' + str(y))
                 self.moveCm(6)
                 time.sleep(1)
                 pathes  = self.scanNode()
                 if(pathes[0]):
+                    #right
                     self.rotateToLine()
                     self.rotateByDegGyro(5, False)
+                    self.odometry.addOffset(90)
                 elif pathes[2]:
+                    # left
                     self.rotateByDegGyro(200)
                     self.rotateToLine()
                     self.rotateByDegGyro(5, False)
+                    self.odometry.addOffset(270)
                 elif pathes[3]:
+                    # forward
                     self.rotateByDegGyro(5, False)
+                    self.odometry.addOffset(0)
                 else:
                     # dead end - return 
                     self.rotateByDegGyro(100)
                     self.rotateToLine()
                     self.rotateByDegGyro(5, False)
+                    self.odometry.addOffset(180)
             
             # found obstacle 
             elif status == 2:
@@ -126,6 +134,7 @@ class Robot():
                 time.sleep(0.5)
                 self.rotateByDegGyro(10)
                 self.rotateToLine()
+                self.odometry.addOffset(180)
 
             else:
                 print("Shit")
@@ -224,10 +233,15 @@ class Robot():
                     self.m_right.stop()
                     return 2
 
-                if self.checkForBlue() or self.checkForRed():
+                if self.checkForBlue():
                     self.m_left.stop()
                     self.m_right.stop()
-                    return 1
+                    return 3
+                elif self.checkForRed():
+                    self.m_left.stop()
+                    self.m_right.stop()
+                    return 4
+
 
                 lightValue = self.readLight()
                 powerLeft, powerRight = self.PID.update(lightValue)
@@ -374,7 +388,7 @@ class Robot():
                 if self.readLight() < 200:
                     isPath = True
 
-        self.odometry.addOffset(angle) # add odemetry offset
+        # self.odometry.addOffset(angle) # add odemetry offset
 
         self.m_left.stop()
         self.m_right.stop()
@@ -402,8 +416,8 @@ class Robot():
         while self.readLight() > 200:
             pass
             
-        offset = startAngle - self.gyro.value()
-        self.odometry.addOffset(offset)
+        # offset = startAngle - self.gyro.value()
+        # self.odometry.addOffset(offset)
         
         self.m_left.stop()
         self.m_right.stop()

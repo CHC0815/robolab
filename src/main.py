@@ -46,9 +46,9 @@ def run():
     logger.debug("run motorcontrol in main")
 
     
-    ev3.Sound.set_volume(100)
-    Sound.play_startup()
-    time.sleep(1.5)
+    #ev3.Sound.set_volume(100)
+    #Sound.play_startup()
+    #time.sleep(4)
     r = Robot()
     r.run()
 
