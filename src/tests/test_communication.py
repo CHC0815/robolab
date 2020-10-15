@@ -26,6 +26,7 @@ class TestRoboLabCommunication(unittest.TestCase):
         """
         This test should check the syntax of the message type "ready"
         """
+
         self.fail('implement me!')
 
     def test_message_path(self):
