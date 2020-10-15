@@ -219,18 +219,11 @@ class Robot():
         :return int: status
         """
 
-
         self.m_left.reset()
         self.m_right.reset()
-        self.m_left.command = 'reset'
-        self.m_right.command = 'reset'
-
-        print(self.m_left.position)
-        print(self.m_right.position)
 
         self.m_left.stop_action = 'brake'
         self.m_right.stop_action = 'brake'
-
 
         self.m_left.speed_sp = 0
         self.m_right.speed_sp = 0
@@ -254,7 +247,6 @@ class Robot():
             lightValue = self.readLight()
             powerLeft, powerRight = self.PID.update(lightValue)
             
-            
             # limits the velocity
             if powerLeft > 1000:
                 powerLeft = 1000
@@ -264,15 +256,6 @@ class Robot():
                 powerLeft = -1000
             if powerRight < -1000:
                 powerRight = -1000
-            
-            
-            action = ""
-            if powerLeft > powerRight:
-                action = "TurnRight"
-            elif powerRight > powerLeft:
-                action = "TurnLeft"
-            else:
-                action = "Forward"
             
             # setzt Motorparameter
             self.m_left.speed_sp = powerLeft

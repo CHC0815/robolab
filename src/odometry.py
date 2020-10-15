@@ -29,6 +29,8 @@ class Odometry:
 
     def calc(self, color):
 
+        if self.dataList.count > 0:
+            prev = self.dataList[0]
         prev = [0, 0, self.rot]
         gamma = self.rot
 
@@ -40,10 +42,6 @@ class Odometry:
             dist_right = self.motorPosToDist(prev[1], el[1])
 
             alpha = (dist_right - dist_left) / self.wheelbase
-
-            
-            # alpha = self.degToRad(prev[2] - el[2])
-            
             beta = alpha / 2
 
             if alpha != 0:
@@ -68,7 +66,6 @@ class Odometry:
         self.rot = self.roundRotation()
 
         self.direction = self.angleToDirection(self.rot)
-
         self.pos[0], self.pos[1] = self.roundPos()
 
 
