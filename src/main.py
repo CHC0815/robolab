@@ -53,7 +53,7 @@ def run():
     r.run()
     c = Communication(client, "Examinator-A-1337r")
 
-
+    c.stopp_comm()
     while True:
         pass
 
