@@ -17,7 +17,7 @@ class Robot():
         self.isCalibrated = True
         self.PID = PID()
         self.wheelbase = 152 # mm
-        # self.planet = Planet()
+        self.planet = Planet()
 
         # ultra sonic sensor
         self.us = ev3.UltrasonicSensor()
@@ -235,8 +235,8 @@ class Robot():
         self.m_right.speed_sp = 0
 
         while True:
-            self.odometry.addData(self.m_left.position, self.m_right.position, self.gyro.value())
-            
+            start = time.time()
+            #self.odometry.addData(self.m_left.position, self.m_right.position, self.gyro.value())
             if self.readDistance() < 10:
                 self.m_left.stop()
                 self.m_right.stop()
@@ -281,6 +281,9 @@ class Robot():
             self.m_left.command = "run-forever"
             self.m_right.command = "run-forever"
 
+            end = time.time()
+            self.odometry.addData(self.m_left.speed, self.m_right.speed, (end-start))
+            
 
     def readDistance(self):
         """
