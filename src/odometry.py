@@ -10,85 +10,59 @@ class Odometry:
         """
         Initializes odometry module
         """
-
         self.robot = robo
-        # distance per one degree
-        self.distance_per_tick = (5.5 * math.pi) / 360
+        self.distance_per_tick = (5.5 * math.pi) / self.robot.m_left.count_per_rot
         self.wheelbase = 15 # min(12.3) max(17.4)
-        # 15
-        # 12.4
-        # 13
 
         self.dataList = []
-        self.oldEl = [0, 0, 0]
 
-        self.position = [0, 0]
         self.rot = 0
+        self.pos = [0,0]
 
 
     def addData(self, left, right, angle):
-        data = [left, right, angle]
-        self.dataList.append(data)
-    
+        d = [left, right, angle]
+        self.dataList.append(d)
+
 
     def calc(self, color):
-        with open('/home/robot/src/odometry.csv', mode='w') as odo_file:
-            odo_writer = csv.writer(odo_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            odo_writer.writerow(['Alpha Rad', 'delta_x', 'delta_y', 'posX', 'posY'])
 
-            for el in self.dataList:
+        prev = [0, 0, self.rot]
 
-                dist_left = self.motorPosToDist(self.oldEl[0], el[0])
-                dist_right = self.motorPosToDist(self.oldEl[1], el[1])
+        gamma = 0
 
+        for el in self.dataList:
+            logger.debug(el)
+            dist_left = self.motorPosToDist(prev[0], el[0])
+            dist_right = self.motorPosToDist(prev[1], el[1])
 
-                alpha = (dist_right - dist_left) / self.wheelbase
+            alpha = (dist_right - dist_left) / self.wheelbase
 
-                alpha = self.oldEl[2] - el[2]
-                alpha = self.degToRad(alpha)
-                alpha = self.normAngleRad(alpha)
+            
+            #alpha = self.degToRad(prev[2] - el[2])
+            
+            beta = alpha / 2
 
-                if alpha != 0:
-                    s = ((dist_right + dist_left) / alpha) * math.sin((alpha / 2 ))
-                else:
-                    s = dist_left # alpha == 0 --> dist_left == dist_right
+            if alpha != 0:
+                s = ((dist_right + dist_left) / alpha) + math.sin(beta)
+            else:
+                s = dist_left
 
+            delta_x = -math.sin(self.rot + beta) * s
+            delta_y = math.cos(self.rot + beta) * s
+            
+            gamma += alpha
+            self.pos[0] += delta_x
+            self.pos[1] += delta_y
 
-                delta_x = math.sin(self.rot + (alpha / 2)) * s
-                delta_y = math.cos(self.rot + (alpha / 2)) * s
-
-                self.rot -= alpha
-                self.rot = self.normAngleRad(self.rot)
-                self.position[0] += delta_x
-                self.position[1] += delta_y
-
-                self.oldEl = el
-
-                odo_writer.writerow([alpha, delta_x, delta_y, self.position[0], self.position[1]])
+            prev = el
 
         self.dataList.clear()
-
-        logger.debug('Position: ' + str(self.position[0]) + '/' + str(self.position[1]))
-        self.position[0], self.position[1] = self.roundPos()
-        logger.debug('RndPos: ' + str(self.position[0]) + '/' + str(self.position[1]))
+        self.rot += gamma
+        self.rot = self.normAngleRad(self.rot)
         self.rot = self.roundRotation()
 
-
-    def roundRotation(self):
-        rot = self.radToDeg(self.rot)
-        rot = self.robot.gyro.value()
-        return self.degToRad(round(rot / 90) * 90)
-
-    def roundPos(self):
-        return (round(self.position[0]/50) * 50), (round(self.position[1]/50) * 50)
-    
-    def getNodeCoord(self):
-        posX, posY = self.roundPos()
-        return (posX//50), (posY//50)
-
-
-    def motorPosToDist(self, start, end):
-        return self.distance_per_tick * (end - start)
+        self.pos[0], self.pos[1] = self.roundPos()
 
 
     def radToDeg(self, rad):
@@ -108,3 +82,17 @@ class Odometry:
             angle -= 2 * math.pi
         return angle
 
+
+    def motorPosToDist(self, start, end):
+        dist = (end-start) * self.distance_per_tick
+        return dist
+
+    def roundPos(self):
+        return (round(self.pos[0]/50) * 50), (round(self.pos[1]/50) * 50)
+    
+    def getNodeCoord(self):
+        posX, posY = self.roundPos()
+        return (posX//50), (posY//50)
+
+    def roundRotation(self):
+        return self.degToRad(round(self.rot / 90) * 90)

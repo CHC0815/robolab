@@ -5,9 +5,10 @@ import time
 import logging
 from controlls.PID import PID
 from odometry import Odometry
+import Sound as snd
+from planet import Planet
 import csv
 
-import Sound as snd
 
 logger = logging.getLogger('Robot')
 
@@ -16,7 +17,7 @@ class Robot():
         self.isCalibrated = True
         self.PID = PID()
         self.wheelbase = 152 # mm
-        self.odometry = Odometry(self)
+        # self.planet = Planet()
 
         # ultra sonic sensor
         self.us = ev3.UltrasonicSensor()
@@ -51,6 +52,8 @@ class Robot():
         self.g_offset = 0
         self.b_offset = 0
 
+        self.odometry = Odometry(self)
+
 
     def scanNode(self):
         """
@@ -60,13 +63,9 @@ class Robot():
         logger.debug('Scanning node...')
         self.rotateByDegGyro(45)
         is_right = self.rotateByDegGyro(90)
-        time.sleep(0.1)
         is_bottom = self.rotateByDegGyro(90) # path from where the robot came, should always be true
-        time.sleep(0.1)
         is_left = self.rotateByDegGyro(90)
-        time.sleep(0.1)
         is_top = self.rotateByDegGyro(90)
-        time.sleep(0.1)
         self.rotateByDegGyro(45, False)
         logger.debug('End scanning node...')
         logger.debug('Right: ' + str(is_right) + ' bottom: ' + str(is_bottom) + ' left: ' + str(is_left) + ' top: ' + str(is_top))
@@ -96,17 +95,18 @@ class Robot():
             if status == 3 or status == 4:
                 # play sound
                 snd.play_node()
-                time.sleep(0.5)
+                time.sleep(0.2)
 
                 # calc current position 
                 self.odometry.calc(status)
-                logger.debug('Alpha: ' + str(self.odometry.radToDeg(self.odometry.rot)) + '° Gyro: ' + str(self.gyro.value()) + '°')
+                logger.debug('Alpha: ' + str(self.odometry.radToDeg(self.odometry.rot)) + '° Gyro: ' + str(self.gyro.value() % 360) + '°')
                 x, y = self.odometry.getNodeCoord()
                 logger.debug('Current Node: ' + str(x) + '/' + str(y))
+
                 self.moveCm(6)
-                time.sleep(1)
+                time.sleep(0.5)
                 pathes  = self.scanNode()
-                if(pathes[0]):
+                if pathes[0]:
                     #right
                     self.rotateToLine()
                     self.rotateByDegGyro(5, False)
@@ -131,7 +131,7 @@ class Robot():
             # found obstacle 
             elif status == 2:
                 snd.play_obstacle()
-                time.sleep(0.5)
+                time.sleep(1)
                 self.rotateByDegGyro(10)
                 self.rotateToLine()
                 self.odometry.addOffset(180)
@@ -220,61 +220,66 @@ class Robot():
         return if it found a node
         :return int: status
         """
+
+        self.m_left.reset()
+        self.m_right.reset()
+        self.m_left.command = 'reset'
+        self.m_right.command = 'reset'
+
+
+        self.m_left.stop_action = 'brake'
+        self.m_right.stop_action = 'brake'
+
+
         self.m_left.speed_sp = 0
         self.m_right.speed_sp = 0
 
-        with open('/home/robot/src/robot_data.csv', mode='w') as robot_file:
-            robot_writer = csv.writer(robot_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            robot_writer.writerow(['Action', 'LightValue', 'MotorSpeedLeft', 'MotorSpeedRight'])
-            while True:
-                
-                if self.readDistance() < 10:
-                    self.m_left.stop()
-                    self.m_right.stop()
-                    return 2
+        while True:
+            self.odometry.addData(self.m_left.position, self.m_right.position, self.gyro.value())
+            
+            if self.readDistance() < 10:
+                self.m_left.stop()
+                self.m_right.stop()
+                return 2
 
-                if self.checkForBlue():
-                    self.m_left.stop()
-                    self.m_right.stop()
-                    return 3
-                elif self.checkForRed():
-                    self.m_left.stop()
-                    self.m_right.stop()
-                    return 4
-
-
-                lightValue = self.readLight()
-                powerLeft, powerRight = self.PID.update(lightValue)
-
-
-                self.odometry.addData(self.m_left.position, self.m_right.position, self.gyro.value())
-
-                # limits the velocity
-                if powerLeft > 1000:
-                    powerLeft = 1000
-                if powerRight > 1000:
-                    powerRight = 1000
-                if powerLeft < -1000:
-                    powerLeft = -1000
-                if powerRight < -1000:
-                    powerRight = -1000
-
-                action = ""
-                if powerLeft > powerRight:
-                    action = "TurnRight"
-                elif powerRight > powerLeft:
-                    action = "TurnLeft"
-                else:
-                    action = "Forward"
-                
-                # schreibt Werte in die Tabelle
-                robot_writer.writerow([action, lightValue, powerLeft, powerRight])
-
-                # setzt Motorparameter
-                self.m_left.speed_sp = powerLeft
-                self.m_right.speed_sp = powerRight
-                self.m_left.command = "run-forever"
-                self.m_right.command = "run-forever"
+            if self.checkForBlue():
+                self.m_left.stop()
+                self.m_right.stop()
+                return 3
+            
+            elif self.checkForRed():
+                self.m_left.stop()
+                self.m_right.stop()
+                return 4
+            
+            lightValue = self.readLight()
+            powerLeft, powerRight = self.PID.update(lightValue)
+            
+            
+            # limits the velocity
+            if powerLeft > 1000:
+                powerLeft = 1000
+            if powerRight > 1000:
+                powerRight = 1000
+            if powerLeft < -1000:
+                powerLeft = -1000
+            if powerRight < -1000:
+                powerRight = -1000
+            
+            
+            action = ""
+            if powerLeft > powerRight:
+                action = "TurnRight"
+            elif powerRight > powerLeft:
+                action = "TurnLeft"
+            else:
+                action = "Forward"
+            
+            # setzt Motorparameter
+            self.m_left.speed_sp = powerLeft
+            self.m_right.speed_sp = powerRight
+            self.m_left.command = "run-forever"
+            self.m_right.command = "run-forever"
 
 
     def readDistance(self):
