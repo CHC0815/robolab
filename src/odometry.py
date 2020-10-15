@@ -29,27 +29,20 @@ class Odometry:
 
     def calc(self, color):
 
-        # prev = [0, 0, self.rot]
+        prev = [0, 0, self.rot]
         gamma = self.rot
 
         delta_x = 0
         delta_y = 0
 
         for el in self.dataList:
-            # dist_left = self.motorPosToDist(prev[0], el[0])
-            # dist_right = self.motorPosToDist(prev[1], el[1])
-
-            cpr = self.robot.m_left.count_per_rot
-            dist_left = (el[0] / cpr) * el[2] * self.distance_per_tick
-            dist_right = (el[1] / cpr) * el[2] * self.distance_per_tick
-
-            # dist_left = el[2] * el[0] * self.distance_per_tick
-            # dist_right = el[2] * el[1] * self.distance_per_tick
+            dist_left = self.motorPosToDist(prev[0], el[0])
+            dist_right = self.motorPosToDist(prev[1], el[1])
 
             alpha = (dist_right - dist_left) / self.wheelbase
 
             
-            #alpha = self.degToRad(prev[2] - el[2])
+            # alpha = self.degToRad(prev[2] - el[2])
             
             beta = alpha / 2
 
@@ -58,14 +51,14 @@ class Odometry:
             else:
                 s = dist_left
 
-            dx = -math.sin(gamma + beta) * s
+            dx = math.sin(gamma + beta) * s
             dy = math.cos(gamma + beta) * s
             
-            gamma += alpha
+            gamma -= alpha
             delta_x += dx
             delta_y += dy
 
-            # prev = el
+            prev = el
 
         self.pos[0] += delta_x
         self.pos[1] += delta_y

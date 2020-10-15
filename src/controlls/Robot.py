@@ -136,8 +136,6 @@ class Robot():
                 self.rotateToLine()
                 self.odometry.addOffset(180)
 
-            else:
-                print("Shit")
 
 
     # calibrates colors in following order: red, blue, white, black
@@ -221,11 +219,14 @@ class Robot():
         :return int: status
         """
 
+
         self.m_left.reset()
         self.m_right.reset()
         self.m_left.command = 'reset'
         self.m_right.command = 'reset'
 
+        print(self.m_left.position)
+        print(self.m_right.position)
 
         self.m_left.stop_action = 'brake'
         self.m_right.stop_action = 'brake'
@@ -235,8 +236,6 @@ class Robot():
         self.m_right.speed_sp = 0
 
         while True:
-            start = time.time()
-            #self.odometry.addData(self.m_left.position, self.m_right.position, self.gyro.value())
             if self.readDistance() < 10:
                 self.m_left.stop()
                 self.m_right.stop()
@@ -281,10 +280,9 @@ class Robot():
             self.m_left.command = "run-forever"
             self.m_right.command = "run-forever"
 
-            end = time.time()
-            self.odometry.addData(self.m_left.speed, self.m_right.speed, (end-start))
-            
-
+            self.odometry.addData(self.m_left.position, self.m_right.position, self.gyro.value())
+    
+    
     def readDistance(self):
         """
         returns the current distance
