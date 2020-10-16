@@ -106,28 +106,33 @@ class Robot():
                 self.moveCm(6)
                 time.sleep(0.5)
                 pathes  = self.scanNode()
+                self.rotateByDegGyro(15)
                 if pathes[0]:
                     #right
                     self.rotateToLine()
                     self.rotateByDegGyro(5, False)
                     self.odometry.addOffset(90)
+                    logger.debug('Right')
                 elif pathes[2]:
                     # left
-                    self.rotateByDegGyro(200)
+                    self.rotateByDegGyro(185)
                     self.rotateToLine()
                     self.rotateByDegGyro(5, False)
                     self.odometry.addOffset(270)
+                    logger.debug('Left')
                 elif pathes[3]:
                     # forward
                     self.rotateByDegGyro(5, False)
                     self.odometry.addOffset(0)
+                    logger.debug('Forward')
                 else:
                     # dead end - return 
-                    self.rotateByDegGyro(100)
+                    self.rotateByDegGyro(85)
                     self.rotateToLine()
                     self.rotateByDegGyro(5, False)
                     self.odometry.addOffset(180)
-            
+                    logger.debug('Back')
+
             # found obstacle 
             elif status == 2:
                 snd.play_obstacle()
@@ -263,11 +268,11 @@ class Robot():
             self.m_left.command = "run-forever"
             self.m_right.command = "run-forever"
 
-            self.odometry.addData(self.m_left.position, self.m_right.position, self.gyro.value())
+            self.odometry.addData(self.m_left.position, self.m_right.position)
     
     
     def readDistance(self):
-        """
+        """, self.gyro.value()
         returns the current distance
         :return float
         """
