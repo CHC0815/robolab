@@ -35,7 +35,7 @@ class Planet:
     it according to the specifications
     """
 
-    def __init__(self):
+    def __init__(self, robo = None):
         """ Initializes the data structure """
         self.paths = {}
         self.ripeGraphList = [] 
@@ -51,6 +51,7 @@ class Planet:
         self.scannedNodes = set()
         self.unseenNodes = []
         self.graph = None
+        self.robo = robo
 
     ####################################################################################################
     ####################################################################################################
@@ -80,7 +81,11 @@ class Planet:
     # direction with unknown path for node
     def get_direction(self, node):
         value = self.unknownPaths[node]
-        return random.choice(value)
+        # if value[0] in self.unknownPaths[node]:
+        #   return value
+        #    elif
+        return random.choice(value) 
+        
 
     # returns path to next node from node
     def get_next_node(self, node):
@@ -165,7 +170,6 @@ class Planet:
                 if node not in self.scannedNodes
             ] 
    
-
     ####################################################################################################
     ####################################################################################################
     ####################################################################################################
