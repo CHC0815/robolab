@@ -5,6 +5,7 @@ import paho.mqtt.client as mqtt
 import uuid
 
 import Communication
+import config
 
 
 class TestRoboLabCommunication(unittest.TestCase):
@@ -13,7 +14,7 @@ class TestRoboLabCommunication(unittest.TestCase):
         """
         Instantiates the communication class
         """
-        client_id = 'YOURGROUPID-' + str(uuid.uuid4())  # Replace YOURGROUPID with your group ID
+        client_id = str(config.general.group_id) + '-' + str(uuid.uuid4())  # Replace YOURGROUPID with your group ID
         client = mqtt.Client(client_id=client_id,  # Unique Client-ID to recognize our program
                              clean_session=False,  # We want to be remembered
                              protocol=mqtt.MQTTv311  # Define MQTT protocol version
@@ -26,6 +27,7 @@ class TestRoboLabCommunication(unittest.TestCase):
         """
         This test should check the syntax of the message type "ready"
         """
+        
 
         self.fail('implement me!')
 

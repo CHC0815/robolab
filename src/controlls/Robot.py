@@ -6,18 +6,20 @@ import logging
 from controlls.PID import PID
 from odometry import Odometry
 import Sound as snd
-from planet import Planet
+from planet import Planet, Direction
 import csv
+from Communication import Communication
 
 
 logger = logging.getLogger('Robot')
 
 class Robot():
-    def __init__(self):
+    def __init__(self, comm: Communication):
         self.isCalibrated = True
         self.PID = PID()
         self.wheelbase = 152 # mm
-        self.planet = Planet()
+        self.comm = comm
+        self.planet = Planet(self)
 
         # ultra sonic sensor
         self.us = ev3.UltrasonicSensor()
@@ -54,6 +56,9 @@ class Robot():
 
         self.odometry = Odometry(self)
 
+        self.oldNodePathes = []
+        self.startDirection = 0
+
 
     def scanNode(self):
         """
@@ -88,7 +93,10 @@ class Robot():
             self.calibrate()
             self.isCalibrated = True
 
-        while True:
+        # send ready message
+
+        while True: # TODO planet calls run with direction
+            # TODO turn to direction
             status = self.lineFolower()
 
             # found node
@@ -101,11 +109,16 @@ class Robot():
                 self.odometry.calc(status)
                 logger.debug('Alpha: ' + str(self.odometry.radToDeg(self.odometry.rot)) + '° Gyro: ' + str(self.gyro.value() % 360) + '°')
                 x, y = self.odometry.getNodeCoord()
-                logger.debug('Current Node: ' + str(x) + '/' + str(y))
+                logger.debug('Current Node: ' + str(x) + '/' + str(y))       
+                
 
                 self.moveCm(6)
                 time.sleep(0.5)
                 pathes  = self.scanNode()
+                self.oldNodePathes = pathes.copy() # copy of pathes
+                # TODO set directions in planet
+
+                # TODO planet.getDirToFollow()
                 self.rotateByDegGyro(15)
                 if pathes[0]:
                     #right
@@ -113,6 +126,7 @@ class Robot():
                     self.rotateByDegGyro(5, False)
                     self.odometry.addOffset(90)
                     logger.debug('Right')
+                    self.startDirection = self.translateRotation(Direction.EAST)
                 elif pathes[2]:
                     # left
                     self.rotateByDegGyro(185)
@@ -120,11 +134,13 @@ class Robot():
                     self.rotateByDegGyro(5, False)
                     self.odometry.addOffset(270)
                     logger.debug('Left')
+                    self.startDirection = self.translateRotation(Direction.WEST)
                 elif pathes[3]:
                     # forward
                     self.rotateByDegGyro(5, False)
                     self.odometry.addOffset(0)
                     logger.debug('Forward')
+                    self.startDirection = self.translateRotation(Direction.NORTH)
                 else:
                     # dead end - return 
                     self.rotateByDegGyro(85)
@@ -132,6 +148,11 @@ class Robot():
                     self.rotateByDegGyro(5, False)
                     self.odometry.addOffset(180)
                     logger.debug('Back')
+                    self.startDirection = self.translateRotation(Direction.SOUTH)
+
+                node = self.odometry.currentNode.copy()
+                node[2] = self.startDirection
+                self.comm.sendPathSelect(node)
 
             # found obstacle 
             elif status == 2:
@@ -140,6 +161,8 @@ class Robot():
                 self.rotateByDegGyro(10)
                 self.rotateToLine()
                 self.odometry.addOffset(180)
+                # TODO endnode = startnode, blocked = true
+                self.comm.sendPath(self.odometry.oldNode, self.odometry.oldNode, "blocked")
 
 
 
@@ -342,8 +365,6 @@ class Robot():
         self.m_right.command = 'run-to-abs-pos'
         time.sleep(2)
 
-
-
     def rotateByDegGyro(self, angle, cw = True):
         """
         rotates the robot and checks for path
@@ -415,3 +436,9 @@ class Robot():
         
         self.m_left.stop()
         self.m_right.stop()
+
+    def translateRotation(self, dir: Direction):
+        startDir = self.odometry.directionToAngle(dir)
+        globalDir = self.odometry.directionToAngle(self.odometry.direction)
+        _dir = (startDir + globalDir) % 360       
+        return self.odometry.angleToDirection(_dir)

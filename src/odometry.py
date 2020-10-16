@@ -23,6 +23,12 @@ class Odometry:
         self.direction = Direction.NORTH
 
 
+        self.firstNode = True
+        self.oldNode = []
+        self.currentNode = []
+
+
+
     def addData(self, left, right):
         """
         adds left and right motor position to dataList
@@ -34,6 +40,12 @@ class Odometry:
 
 
     def calc(self, color):
+
+        # first node was set by mothership
+        if self.firstNode:
+            self.firstNode = False
+            return
+
 
         prev = self.dataList[0]
         gamma = self.rot
@@ -71,6 +83,11 @@ class Odometry:
 
         self.direction = self.angleToDirection(self.rot)
         self.pos[0], self.pos[1] = self.roundPos()
+
+        x, y = self.getNodeCoord()
+        self.currentNode = [x, y, self.direction]
+        # send path to mothership
+        self.robot.comm.sendPath(self.oldNode, self.currentNode, "free")
 
 
     def radToDeg(self, rad):
@@ -131,6 +148,16 @@ class Odometry:
         else:
             return Direction.EAST
 
+    def directionToAngle(self, dir: Direction):
+        if dir == Direction.NORTH:
+            return 0
+        elif dir == Direction.EAST:
+            return 90
+        elif dir == Direction.SOUTH:
+            return 180
+        elif dir == Direction.WEST:
+            return 270
+
     def motorPosToDist(self, start, end):
         """
         converts two motor positions to a distance
@@ -162,4 +189,13 @@ class Odometry:
         :return float
         """
         return self.degToRad(round(self.rot / 90) * 90)
+
+    def updateRobo(self, posX, posY, direction):
+        self.pos[0] = posX * 50
+        self.pos[1] = posY * 50
+        self.direction = self.angleToDirection(direction)
+        if self.firstNode:
+            self.oldNode = [posX, posY, direction]
+        else:
+            self.currentNode = [posX, posY, direction]
 
