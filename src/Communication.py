@@ -3,7 +3,7 @@ import config
 import ssl
 import logging
 from time import sleep
-from threading import Thread
+from controlls.Robot import Robot
 
 
 #                           Communication                        #
@@ -12,24 +12,19 @@ from threading import Thread
 logger = logging.getLogger('communication')
 
 
-class Communication(Thread):
+class Communication():
     """
         Communication interact with the mothership
         Runs on thread
     """
 
-
-
-    def __init__(self, mqtt_client, robo, test=None):
+    def __init__(self, mqtt_client, robo: Robot, test=None):
         """
         Init Comm
         :param mqtt_client: paho.mqtt.client.Client
         :param test: name of testplanet
         :param robo: give a roboter
         """
-
-        # Init Threading
-        Thread.__init__(self)
 
         if mqtt_client is None:
             raise ValueError('Invalid mqtt client')
@@ -72,7 +67,7 @@ class Communication(Thread):
         print('Got message with topic "{}":'.format(message.topic))
 
         #explorer messages
-        if topic == "explorer" + config.general.group_id:
+        if topic == "explorer/" + str(config.general.group_id):
 
             #testplanet message
             if self.payload['from'] == "debug" and self.payload['type'] == "notice":
@@ -81,9 +76,14 @@ class Communication(Thread):
             #ready message
             elif self.payload['from'] == "server" and self.payload['type'] == "planet":
                 self.client.subscribe('planet/' + self._planet + '/' +config.general.group_id, 1)
+                # set odometry 
+                _startX = int(self.payload['payload']['startX'])
+                _startY = int(self.payload['payload']['startY'])
+                _startDir = int(self.payload['payload']['startOrientation'])
+                self.robo.odometry.updateRobo(_startX, _startY, _startDir)
 
         #planet messages
-        elif topic == "planet/" + self._planet + "/" + config.general.group_id:
+        elif topic == "planet/" + self._planet + "/" + str(config.general.group_id):
 
             #path message
             if self.payload['from'] == "server" and self.payload['type'] == "path":
@@ -121,7 +121,7 @@ class Communication(Thread):
                 _endDirection = self.payload['payload']['endDirection']
                 _pathStatus = self.payload['payload']['pathStatus']
                 _pathWeight = self.payload['payload']['pathWeight']
-
+                # TODO 
             #target message
             elif self.payload['from'] == "server" and self.payload['type'] == "target":
                 target = [self.payload['payload']['targetX'], self.payload['payload']['targetY']]
@@ -131,7 +131,7 @@ class Communication(Thread):
             elif self.payload['from'] == "server" and self.payload['type'] == "done":
                 _complete_message = self.payload['payload']['message']
 
-                _complete_message
+                # TODO ende
 
         #valid_message
         elif topic == "comtest/" + config.general.group_id + " (Invalid)":
@@ -218,44 +218,6 @@ class Communication(Thread):
         self.client.publish(topic, message, 1)
 
 
-
-    def path(self, start, destination, blocked=False): #TODO: I need
-         #send next path and mothership will correct it
-
-        path_msg = {
-            {
-                "from": "client",
-                "type": "path",
-                "payload": {
-                    "startX": "sX",
-                    "startY": "sY",
-                    "startDirction": "sD",
-                    "endX": "eX",
-                    "endY": "eY",
-                    "endDirection": "eD",
-                    "pathStatus": "moin"
-                }
-            }
-        }
-
-        self.send_message('planet/' + self._planet + '/' +
-                                 config.general.group_id, path_msg, 1)
-
-
-
-    def send_target_reached(self, message=None):
-        """
-           :param message: additional message to send to the server
-        """
-        self.payload['payload'] = "target reached!"
-
-        if message:
-            self.payload['payload'] += " " + message
-
-        self.send_message('planet/' + self._planet, message)
-
-
-
     def send_exploration_completed(self, message=None):
         """
         :param message: additional message to send to the server
@@ -273,8 +235,7 @@ class Communication(Thread):
         exp_message['type'] = "explorationCompleted"
         exp_message['payload']['message'] = _message
 
-        self.send_message("planet" + self._planetName + '/', exp_message)
-
+        self.send_message('explorer/' + str(config.general.group_id), exp_message)
 
 
     def send_target_completed(self, message=None):
@@ -294,7 +255,7 @@ class Communication(Thread):
         target_message['type'] = "targetReached"
         target_message['payload']['message'] = _message
 
-        self.send_message("planet" + self._planetName + '/', target_message)
+        self.send_message('explorer/' + str(config.general.group_id), target_message)
 
 
 
@@ -338,12 +299,4 @@ class Communication(Thread):
         testplanet_msg['payload']['planetName'] = testplanet
 
         self.send_message('explorer/' + config.general.group_id, testplanet_msg)
-
-
-
-
-
-
-
-
 

@@ -49,9 +49,10 @@ def run():
     #ev3.Sound.set_volume(100)
     #Sound.play_startup()
     #time.sleep(4)
-    r = Robot()
+    c = Communication(client, "Examinator-A-1337r")
+    r = Robot(c)
+    c.send_ready()
     r.run()
-    # c = Communication(client, "Examinator-A-1337r")
 
     c.stopp_comm()
     while True:
