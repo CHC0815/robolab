@@ -35,7 +35,7 @@ class Planet:
     it according to the specifications
     """
 
-    def __init__(self, robo = None):
+    def __init__(self, robo=None):
         """ Initializes the data structure """
         self.paths = {}
         self.ripeGraphList = [] 
@@ -48,7 +48,7 @@ class Planet:
             (0, 0): [Direction.NORTH, Direction.SOUTH, ...]
         }
         """
-        self.scannedNodes = set()
+        self.viewedNodes = set()
         self.unseenNodes = []
         self.graph = None
         self.robo = robo
@@ -58,37 +58,35 @@ class Planet:
     ####################################################################################################
 
     # adds unknown paths
-    def add_unknown_paths(self, node):
+    def add_unknown_path(self, node):
         """node should look like:
         {
-            currentNode: [(Direction.NORTH, -2), (Direction.EAST, -3)]
-        } Definition: -1 = blocked, -2 = pathAvailable, -3 = noPath
+            currentNode: [(Direction.NORTH, -2), (Direction.EAST, -1)]
+        } Definition: -1 = blocked, -2 = pathAvailable
         """
         key = list(node.keys())[0]
-        print(key)
-        unknown_paths = list(node.values())[0]
-        print(unknown_paths)
-        # filter list, remove -1 and - 3 elements
-        unknown_paths = [x for x in unknown_paths if -1 not in x]
-        unknown_paths = [x for x in unknown_paths if -3 not in x]
-        new_unknown_paths = []
-        for element in unknown_paths:
-            new_unknown_paths.append(element[0])
-        self.scannedNodes.add(key)
-        self.unknownPaths.update({key: new_unknown_paths})
+        unknown_paths = list(node.values())[0]      
+        # filter list, remove -1 elements
+        unknown_paths = [x for x in unknown_paths if -1 not in x]       
+        new_unknown_paths = []       
+        if unknown_paths :
+            for element in unknown_paths:
+                new_unknown_paths.append(element[0])
+            self.unknownPaths.update({key: new_unknown_paths})
+        self.viewedNodes.add(key)
         print(self.unknownPaths)
 
     # direction with unknown path for node
     def get_direction(self, node):
         value = self.unknownPaths[node]
-        # if value[0] in self.unknownPaths[node]:
-        #   return value
-        #    elif
-        return random.choice(value) 
-        
-
+        # print(value)
+        directionList= [Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST]
+        for di in directionList:
+            if di in value:
+                return di
+         
     # returns path to next node from node
-    def get_next_node(self, node):
+    def explore_next_node(self, node):
         # maybe there are no paths to discover
         if not self.unknownPaths and not self.unseenNodes:
             logger.info("Everything discovered. Finishing exploration.")
@@ -110,29 +108,29 @@ class Planet:
         interesting_start_nodes = list(self.unknownPaths.keys())
         print('interesting_start_nodes(unknown):')
         print(interesting_start_nodes)
-        interesting_start_nodes.extend(self.unseenNodes)
-        print('interesting_start_nodes(unknown)+unseenNodes:')
-        print(interesting_start_nodes)
-        graph = SearchableGraph(graphList, node, interesting_start_nodes) # node is current start node
+        # interesting_start_nodes.extend(self.unseenNodes)
+        # print('interesting_start_nodes(unknown)+unseenNodes:')
+        # print(interesting_start_nodes)
+        graph = graphToSearch(graphList, node, interesting_start_nodes) # node is current start node
         logger.info("...done")
         target = graph.find_next_node()
         if target is not None:
-            logger.info("Found new target node:")
-            logger.info(target)
+            print("Found new target node:")
+            print(target)
             return self.shortest_path(node, target)
         else:
             logger.warning("Function did not exit properly.")
             return None
 
-    # check whether node is already scanned, return boolean
-    def node_scanned(self, node):
-        self.clean_unknown_paths()
-        if node in self.scannedNodes:
-            logger.info("Node already scanned.")
-            return True
-        else:
-            logger.info("Node unknown. Please scan!")
-            return False
+    # # check whether node is already scanned, return boolean
+    # def node_viewed(self, node):
+    #     self.clean_unknown_paths()
+    #     if node in self.viewedNodes:
+    #         logger.info("Node already scanned.")
+    #         return True
+    #     else:
+    #         logger.info("Node unknown. Please scan!")
+    #         return False
 
     # check whether there are unknown directions for node, return boolean
     def able_to_go_direction(self, node):
@@ -146,28 +144,26 @@ class Planet:
 
     def clean_unknown_paths(self):
         if self.paths:
-
             for known_key, known_value in self.paths.items():
                 known_directions = known_value.keys()
-                # append scannedNodes
+                # append viewedNodes
                 if len(known_directions) == 4:
-                    self.scannedNodes.add(known_key)
+                    self.viewedNodes.add(known_key)
                 if known_key in self.unknownPaths:
                     unknown_directions = self.unknownPaths[known_key]
                     new_unknown_paths = [
                         item for item in unknown_directions
                         if item not in known_directions
                     ]
-                    if not new_unknown_paths:
-                        self.unknownPaths.pop(known_key, None)
-                    else:
+                    if new_unknown_paths:
                         self.unknownPaths[known_key] = new_unknown_paths
-            # regen list of unseenNodes
-            # criteria: not already scanned
-            # and less than 4 edges
+                    else:
+                        self.unknownPaths.pop(known_key)
+                        
+            # regenerate list of unseenNodes, not already viewed
             self.unseenNodes = [
                 node for node in self.paths.keys()
-                if node not in self.scannedNodes
+                if node not in self.viewedNodes
             ] 
    
     ####################################################################################################
@@ -189,55 +185,55 @@ class Planet:
         """
 
         # YOUR CODE FOLLOWS (remove pass, please!)
-        start_coordinate = start[0]
+        start_position = start[0]
         start_direction = start[1]
-        target_coordinate = target[0]
+        target_position = target[0]
         target_direction = target[1]
 
         if (weight > 0) or (weight == -1):
-            if start_coordinate in self.paths:
+            if start_position in self.paths:
                 # start node already in dict
-                # if start_direction not in self.paths[start_coordinate]:
+                # if start_direction not in self.paths[start_position]:
                 #add new path
-                self.paths[start_coordinate].update(
-                    {start_direction: (target_coordinate, target_direction, weight)})
+                self.paths[start_position].update(
+                    {start_direction: (target_position, target_direction, weight)})
                 logger.info("new path added")
 
-            elif start_coordinate not in self.paths:
+            elif start_position not in self.paths:
                 # start node unknown, then add it to dict 
                 self.paths.update(
-                    {start_coordinate: {
-                        start_direction: (target_coordinate,
+                    {start_position: {
+                        start_direction: (target_position,
                                           target_direction, weight)
                     }})
                 logger.info("new path added")
 
-            if target_coordinate in self.paths:
+            if target_position in self.paths:
                 # target node already in dict
-                # if target_direction not in self.paths[target_coordinate]:
-                self.paths[target_coordinate].update(
-                    {target_direction: (start_coordinate, start_direction, weight)})
+                # if target_direction not in self.paths[target_position]:
+                self.paths[target_position].update(
+                    {target_direction: (start_position, start_direction, weight)})
 
-            elif target_coordinate not in self.paths:
+            elif target_position not in self.paths:
                 # target node unknown, add it to dict
                 self.paths.update(
-                    {target_coordinate: {
+                    {target_position: {
                         target_direction: (
-                            start_coordinate, start_direction, weight)
+                            start_position, start_direction, weight)
                     }})
 
         # elif weight == -1:
         #     # if path is blocked, after scanning node again
-        #     if start_coordinate in self.paths:
+        #     if start_position in self.paths:
         #         # node in dict
-        #         self.paths[start_coordinate].update(
-        #             {start_direction: (target_coordinate, target_direction, weight)})
+        #         self.paths[start_position].update(
+        #             {start_direction: (target_position, target_direction, weight)})
 
-        #     elif start_coordinate not in self.paths:
+        #     elif start_position not in self.paths:
         #         # add node to dict
         #         self.paths.update(
-        #             {start_coordinate: {
-        #                 start_direction: (target_coordinate,
+        #             {start_position: {
+        #                 start_direction: (target_position,
         #                                   target_direction, weight)
         #             }})
         else:
@@ -464,18 +460,24 @@ class Planet:
     ####################################################################################################
     
 
-class SearchableGraph:
-    def __init__(self, graph, node, unknown):
+class graphToSearch:
+    def __init__(self, graph, node, nodesWithUnknownPaths):
         self.graph = graph
         """
         graph should look like:
         {
-            node: [nodes, connected, to]
+            node: [connectted node 1, connectted node 2, ...]
+            ...
+            ...
         }
+
+        graph example:
+            {(1, 1): [(1, 2), (2, 1)], (1, 2): [(1, 1), (2, 3)], ...}
+
         """
         self.node = node
-        self.unknown = unknown
-        self.logger = logging.getLogger('SearchableGraph')
+        self.nodesWithUnknownPaths = nodesWithUnknownPaths
+        self.logger = logging.getLogger('graphToSearch')
         logging.basicConfig(level=logging.DEBUG)
 
     def find_next_node(self):
@@ -531,7 +533,7 @@ class SearchableGraph:
             # else keep on searching
             for known in queue[level]:
                 # known node has unknown directions
-                if known in self.unknown:
+                if known in self.nodesWithUnknownPaths:
                     return known
 
 
