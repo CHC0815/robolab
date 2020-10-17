@@ -2,6 +2,7 @@
 import math
 import logging
 import csv
+import time
 
 from planet import Direction
 
@@ -39,14 +40,15 @@ class Odometry:
         self.dataList.append(d)
 
     def calc(self, color):
-
+        self.oldNode = self.currentNode
+        
         # first node was set by mothership
         if self.firstNode:
             self.firstNode = False
             self.robot.comm.set_testplanet("Examinator-A-1337r")
             self.robot.comm.send_ready()
+            time.sleep(3)
             return
-
 
         prev = self.dataList[0]
         gamma = self.rot
@@ -63,7 +65,7 @@ class Odometry:
 
             if alpha != 0:
                 s = ((dist_right + dist_left) / alpha) * math.sin(beta)
-            else:
+            else:                                
                 s = dist_left
 
             dx = math.sin(gamma + beta) * s
@@ -78,7 +80,7 @@ class Odometry:
         self.pos[0] += delta_x
         self.pos[1] += delta_y
         self.dataList.clear()
-        self.rot += gamma
+        self.rot = gamma
         self.rot = self.normAngleRad(self.rot)
         self.rot = self.roundRotation()
 
@@ -103,7 +105,6 @@ class Odometry:
         logger.debug(endNode)
 
         self.robot.comm.sendPath(startNode, endNode, "free")
-        self.oldNode = self.currentNode
 
 
     def radToDeg(self, rad):
@@ -131,26 +132,20 @@ class Odometry:
         """
         self.rot += self.degToRad(offset)
         self.rot = self.normAngleRad(self.rot)
-        print(self.direction)
         self.direction = self.angleToDirection(self.rot)
-        print(self.direction)
 
     def normAngleRad(self, angle):
         """
-        normalizes an angle (-pi/pi)
+        normalizes an angle (0/2*pi)
         :param float: angle
         :return void
         """
-        #while(angle <= -math.pi):
-        #    angle += 2 * math.pi
-        #while(angle > math.pi):
-        #    angle -= 2 * math.pi
         angle = angle % (2*math.pi)
         return angle
 
     def normAngleDeg(self, angle):
         """
-        normalizes an angle(-180/180)
+        normalizes an angle(0/360)
         :param float: angle
         :return void
         """
@@ -174,8 +169,6 @@ class Odometry:
         :param float: angle
         :return Direction
         """
-        # angle = self.normAngleRad(angle)
-        angle += (2*math.pi) # positive
         angle = angle % (2*math.pi)
 
         if angle <= (math.pi * 1/4) or angle > (math.pi * 7/4):
@@ -196,6 +189,18 @@ class Odometry:
             return 180
         elif dir == Direction.WEST:
             return 270
+
+        
+    def directionToRadian(self, dir: Direction):
+        if dir == Direction.NORTH:
+            return 0
+        elif dir == Direction.EAST:
+            return (1/2 * math.pi)
+        elif dir == Direction.SOUTH:
+            return math.pi
+        elif dir == Direction.WEST:
+            return (6/4 * math.pi)
+
 
     def motorPosToDist(self, start, end):
         """
@@ -234,16 +239,21 @@ class Odometry:
     def updateRobo(self, posX, posY, direction):
         self.pos[0] = posX * 50
         self.pos[1] = posY * 50
-        self.direction = Direction(direction)
-        if self.firstNode:
-            self.oldNode = [posX, posY]
-        else:
-            self.direction = self.oppositeDirection(self.direction)
-            self.toDirection = self.direction
-            self.currentNode = [posX, posY]
+        self.direction = self.oppositeDirection(Direction(direction))
+        self.toDirection = self.direction
+        self.currentNode = [posX, posY]
 
-        self.rot = self.degToRad(self.directionToAngle(self.direction))
+        self.rot = self.directionToRadian(self.direction)
         logger.debug('Updated Robo: ' + str(self.pos[0]) + '/' + str(self.pos[1]) + ' ' + str(self.direction))
+
+    def setupRobo(self, posX, posY, startDirection):
+        self.pos[0] = posX * 50
+        self.pos[1] = posY * 50
+        self.direction = Direction(startDirection)
+        self.oldNode = [posX, posY]
+        self.currentNode = [posX, posY]
+        logger.debug('Robot was set up...')
+
 
     def oppositeDirection(self, dir: Direction):
         if dir == Direction.NORTH:

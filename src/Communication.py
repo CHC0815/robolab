@@ -80,12 +80,12 @@ class Communication():
 
             #ready message
             elif self.payload['from'] == "server" and self.payload['type'] == "planet":
-                self.client.subscribe('planet/' + self._planetName + '/' +config.general.group_id, 1)
+                self.client.subscribe('planet/' + self._planetName + '/' + config.general.group_id, 1)
                 # set odometry 
                 _startX = int(self.payload['payload']['startX'])
                 _startY = int(self.payload['payload']['startY'])
                 _startDir = int(self.payload['payload']['startOrientation'])
-                self.robo.odometry.updateRobo(_startX, _startY, _startDir)
+                self.robo.odometry.setupRobo(_startX, _startY, _startDir)
 
         #planet messages
         elif topic == "planet/" + self._planetName + "/" + str(config.general.group_id):
@@ -114,8 +114,8 @@ class Communication():
                 target = ((_endX, _endY), _endDirection)
 
                 #add new path
-                self.robo.planet.add_path(start, target, _pathWeight)
                 self.robo.odometry.updateRobo(_endX, _endY, _endDirection)
+                self.robo.planet.add_path(start, target, _pathWeight)
 
             #path select message
             elif self.payload['from'] == "server" and self.payload['type'] == "pathSelect":
