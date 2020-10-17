@@ -24,8 +24,10 @@ class Odometry:
 
 
         self.firstNode = True
-        self.oldNode = []
-        self.currentNode = []
+        self.oldNode = [1, 1]
+        self.currentNode = [1, 1]
+        self.fromDirection = Direction.NORTH
+        self.toDirection = Direction.NORTH
 
 
 
@@ -44,6 +46,9 @@ class Odometry:
         # first node was set by mothership
         if self.firstNode:
             self.firstNode = False
+            self.updateRobo(1, 1, Direction.NORTH)
+            self.robot.comm.set_testplanet("Examinator-A-1337r")
+            self.robot.comm.send_ready()
             return
 
 
@@ -79,15 +84,30 @@ class Odometry:
         self.dataList.clear()
         self.rot += gamma
         self.rot = self.normAngleRad(self.rot)
-        self.rot = self.roundRotation()
+        self.rot = self.rddoundRotation()
 
         self.direction = self.angleToDirection(self.rot)
         self.pos[0], self.pos[1] = self.roundPos()
 
         x, y = self.getNodeCoord()
-        self.currentNode = [x, y, self.direction]
+        self.currentNode = [x, y]
+
         # send path to mothership
-        self.robot.comm.sendPath(self.oldNode, self.currentNode, "free")
+        e = self.currentNode.copy()
+        self.toDirection = self.oppositeDirection(self.direction)
+        endNode = [e[0], e[1], self.toDirection]
+        
+        s = self.oldNode.copy()
+        startNode = [s[0], s[1], self.fromDirection]
+
+        logger.debug('Start Node: ')
+        logger.debug(startNode)
+
+        logger.debug('End Node: ')
+        logger.debug(endNode)
+
+        self.robot.comm.sendPath(startNode, endNode, "free")
+        self.oldNode = self.currentNode
 
 
     def radToDeg(self, rad):
@@ -138,15 +158,18 @@ class Odometry:
         :param float: angle
         :return Direction
         """
-        angle = self.normAngleRad(angle)
-        if angle <= math.pi * 1/4 or angle > math.pi * 7/4:
+        # angle = self.normAngleRad(angle)
+        angle += (2*math.pi) # positive
+        angle = angle % (2*math.pi)
+
+        if angle <= (math.pi * 1/4) or angle > (math.pi * 7/4):
             return Direction.NORTH
-        elif angle <= math.pi * 3/4 and angle > math.pi * 1/4:
+        elif angle >= (math.pi * 1/4) and angle < (math.pi * 3/4):
             return Direction.WEST
-        elif angle <= math.pi * 5/4 and angle > math.pi * 3/4:
+        elif angle >= (math.pi * 3/4) and angle < (math.pi * 5/4):
             return Direction.SOUTH
-        else:
-            return Direction.EAST
+        elif angle >= (math.pi * 5/4) and angle < (math.pi * 7/4):
+            return Direction.EAST 
 
     def directionToAngle(self, dir: Direction):
         if dir == Direction.NORTH:
@@ -199,3 +222,14 @@ class Odometry:
         else:
             self.currentNode = [posX, posY, direction]
 
+        logger.debug('Updated Robo Pos/Dir...')
+
+    def oppositeDirection(self, dir: Direction):
+        if dir == Direction.NORTH:
+            return Direction.SOUTH
+        elif dir == Direction.SOUTH:
+            return Direction.NORTH
+        elif dir == Direction.WEST:
+            return Direction.EAST
+        elif dir == Direction.EAST:
+            return Direction.WEST

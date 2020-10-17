@@ -19,7 +19,7 @@ class Robot():
         self.PID = PID()
         self.wheelbase = 152 # mm
         self.comm = comm
-        self.planet = Planet(self)
+        self.planet = Planet() # self
 
         # ultra sonic sensor
         self.us = ev3.UltrasonicSensor()
@@ -93,10 +93,7 @@ class Robot():
             self.calibrate()
             self.isCalibrated = True
 
-        # send ready message
-
-        while True: # TODO planet calls run with direction
-            # TODO turn to direction
+        while True:
             status = self.lineFolower()
 
             # found node
@@ -107,16 +104,19 @@ class Robot():
 
                 # calc current position 
                 self.odometry.calc(status)
-                logger.debug('Alpha: ' + str(self.odometry.radToDeg(self.odometry.rot)) + '° Gyro: ' + str(self.gyro.value() % 360) + '°')
                 x, y = self.odometry.getNodeCoord()
                 logger.debug('Current Node: ' + str(x) + '/' + str(y))       
-                
+                logger.debug('Current Direction: ' + str(self.odometry.direction))
 
                 self.moveCm(6)
                 time.sleep(0.5)
                 pathes  = self.scanNode()
                 self.oldNodePathes = pathes.copy() # copy of pathes
                 # TODO set directions in planet
+
+
+                time.sleep(3)
+
 
                 # TODO planet.getDirToFollow()
                 self.rotateByDegGyro(15)
@@ -150,9 +150,11 @@ class Robot():
                     logger.debug('Back')
                     self.startDirection = self.translateRotation(Direction.SOUTH)
 
-                node = self.odometry.currentNode.copy()
-                node[2] = self.startDirection
-                self.comm.sendPathSelect(node)
+                if not self.odometry.firstNode:
+                    node = self.odometry.currentNode.copy()
+                    node[2] = self.startDirection
+                    self.odometry.fromDirection = self.startDirection
+                    self.comm.sendPathSelect(node)
 
             # found obstacle 
             elif status == 2:
@@ -161,7 +163,6 @@ class Robot():
                 self.rotateByDegGyro(10)
                 self.rotateToLine()
                 self.odometry.addOffset(180)
-                # TODO endnode = startnode, blocked = true
                 self.comm.sendPath(self.odometry.oldNode, self.odometry.oldNode, "blocked")
 
 
@@ -440,5 +441,10 @@ class Robot():
     def translateRotation(self, dir: Direction):
         startDir = self.odometry.directionToAngle(dir)
         globalDir = self.odometry.directionToAngle(self.odometry.direction)
-        _dir = (startDir + globalDir) % 360       
-        return self.odometry.angleToDirection(_dir)
+        _dir = (globalDir + startDir) % 360
+        _dir = self.odometry.degToRad(_dir)
+        direction = self.odometry.angleToDirection(_dir)
+        return direction
+
+    def finished(self):
+        print('==========FERTIG==========')

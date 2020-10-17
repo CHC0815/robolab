@@ -3,7 +3,6 @@ import config
 import ssl
 import logging
 from time import sleep
-from controlls.Robot import Robot
 
 
 #                           Communication                        #
@@ -18,7 +17,7 @@ class Communication():
         Runs on thread
     """
 
-    def __init__(self, mqtt_client, robo: Robot, test=None):
+    def __init__(self, mqtt_client, planetName=None,test=None):
         """
         Init Comm
         :param mqtt_client: paho.mqtt.client.Client
@@ -36,20 +35,17 @@ class Communication():
 
         self.client.on_message = self.safe_on_message_handler
         self.client.on_message = self.on_message
-        self.client.connect(config.mqtt.domain, config.mqtt.pw)
+        self.client.username_pw_set(str(config.general.group_id), password=config.mqtt.pw) # Your group credentials
+        self.client.connect(config.mqtt.domain, port=8883)
 
-        self._planetName = None
-        self.robo = robo
-
-
-        #only when par test in comm defined
-        if test is not None:
-            self.set_testplanet(test)
+        self._planetName = planetName
 
         self.client.loop_start()
 
         logger.info("Connected to server")
 
+    def init(self, robo):
+        self.robo = robo
 
 
     # Listener
@@ -64,7 +60,17 @@ class Communication():
 
         topic = message.topic
         self.payload = json.loads(message.payload.decode('utf-8'))
-        print('Got message with topic "{}":'.format(message.topic))
+
+        if self.payload['from'] == "client":
+            return
+
+        if self.payload['from'] == "debug":
+            # print(json.dumps(self.payload, indent=4, sort_keys=True))
+            return
+
+        logger.debug('Got message with topic "{}":'.format(message.topic))
+        logger.debug(json.dumps(self.payload, indent=4, sort_keys=True))
+
 
         #explorer messages
         if topic == "explorer/" + str(config.general.group_id):
@@ -84,9 +90,13 @@ class Communication():
 
         #planet messages
         elif topic == "planet/" + self._planet + "/" + str(config.general.group_id):
+            
+            print('planet message from server')
 
             #path message
             if self.payload['from'] == "server" and self.payload['type'] == "path":
+
+                print('path message from server')
 
                 _pathStatus = self.payload['payload']['pathStatus']
                 if self._pathStatus == "blocked":
@@ -105,11 +115,12 @@ class Communication():
 
                 #add new path
                 self.robo.planet.add_path(start, target, _pathWeight)
+                self.robo.odometry.updateRobo(_endX, _endY, _endDirection)
 
             #path select message
             elif self.payload['from'] == "server" and self.payload['type'] == "pathSelect":
                 #set new direction
-                self.robot.planet.go_direction(self.payload['payload']['startDirection'])
+                self.robo.planet.go_direction(self.payload['payload']['startDirection'])
 
             #path unveiled message
             elif self.payload['from'] == "server" and self.payload['type'] == "pathUnveiled":
@@ -121,7 +132,12 @@ class Communication():
                 _endDirection = self.payload['payload']['endDirection']
                 _pathStatus = self.payload['payload']['pathStatus']
                 _pathWeight = self.payload['payload']['pathWeight']
-                # TODO 
+                
+                start = [[_startX, _startY], _startDirection]
+                end = [[_endX, _endY], _endDirection]
+                if _pathStatus == "blocked":
+                    _pathWeight = -1
+                self.robo.planet.add_path(start, end, _pathWeight) 
             #target message
             elif self.payload['from'] == "server" and self.payload['type'] == "target":
                 target = [self.payload['payload']['targetX'], self.payload['payload']['targetY']]
@@ -131,7 +147,7 @@ class Communication():
             elif self.payload['from'] == "server" and self.payload['type'] == "done":
                 _complete_message = self.payload['payload']['message']
 
-                # TODO ende
+                self.robo.finished()
 
         #valid_message
         elif topic == "comtest/" + config.general.group_id + " (Invalid)":
@@ -156,7 +172,7 @@ class Communication():
         ready_msg['from'] = "client"
         ready_msg['type'] = "ready"
 
-        self.send_message('explorer/' + config.general.group_id, ready_msg)
+        self.send_message('explorer/' + str(config.general.group_id), json.dumps(ready_msg))
 
 
 
@@ -174,6 +190,7 @@ class Communication():
         path_message={}
         path_message['from'] = "client"
         path_message['type'] = "path"
+        path_message['payload'] = {}
         path_message['payload']['startX'] = startX
         path_message['payload']['startY'] = startY
         path_message['payload']['startDirection'] = startDirection
@@ -182,7 +199,7 @@ class Communication():
         path_message['payload']['endDirection'] = endDirection
         path_message['payload']['pathStatus'] = status
 
-        self.send_message("planet" + self._planetName + '/', path_message)
+        self.send_message("planet/" + self._planetName + '/' + str(config.general.group_id), json.dumps(path_message))
 
 
 
@@ -195,11 +212,12 @@ class Communication():
         pathSel_message = {}
         pathSel_message['from'] = "client"
         pathSel_message['type'] = "pathSelect"
+        pathSel_message['payload'] = {}
         pathSel_message['payload']['startX'] = startX
         pathSel_message['payload']['startY'] = startY
         pathSel_message['payload']['startDirection'] = startDirection
 
-        self.send_message("planet" + self._planetName + '/', pathSel_message)
+        self.send_message("planet/" + self._planetName + '/' + str(config.general.group_id), json.dumps(pathSel_message))
 
 
 
@@ -211,7 +229,7 @@ class Communication():
         :return: void
         """
         logger.debug('Send to: ' + topic)
-        logger.debug(json.dumps(message, 2))
+        logger.debug(json.dumps(json.loads(message), indent=4, sort_keys=True))
 
         self.client.subscribe(topic, qos=1)
 
@@ -233,6 +251,7 @@ class Communication():
         exp_message = {}
         exp_message['from'] = "client"
         exp_message['type'] = "explorationCompleted"
+        exp_message['payload'] = {}
         exp_message['payload']['message'] = _message
 
         self.send_message('explorer/' + str(config.general.group_id), exp_message)
@@ -253,6 +272,7 @@ class Communication():
         target_message = {}
         target_message['from'] = "client"
         target_message['type'] = "targetReached"
+        target_message['payload'] = {}
         target_message['payload']['message'] = _message
 
         self.send_message('explorer/' + str(config.general.group_id), target_message)
@@ -296,7 +316,8 @@ class Communication():
         testplanet_msg['from'] = "client"
         testplanet_msg['from'] = "client"
         testplanet_msg['type'] = "testplanet"
+        testplanet_msg['payload'] = {}
         testplanet_msg['payload']['planetName'] = testplanet
 
-        self.send_message('explorer/' + config.general.group_id, testplanet_msg)
+        self.send_message('explorer/' + str(config.general.group_id), json.dumps(testplanet_msg))
 

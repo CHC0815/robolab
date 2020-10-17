@@ -6,7 +6,7 @@ import os
 import paho.mqtt.client as mqtt
 import uuid
 
-# from Communication import Communication
+from Communication import Communication
 from odometry import Odometry
 from planet import Direction, Planet
 
@@ -49,14 +49,12 @@ def run():
     #ev3.Sound.set_volume(100)
     #Sound.play_startup()
     #time.sleep(4)
-    c = Communication(client, "Examinator-A-1337r")
+    c = Communication(client, planetName="Examinator-A-1337r")
     r = Robot(c)
-    c.send_ready()
+    c.init(r)
     r.run()
 
     c.stopp_comm()
-    while True:
-        pass
 
 # DO NOT EDIT
 if __name__ == '__main__':
