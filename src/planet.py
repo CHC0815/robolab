@@ -7,7 +7,7 @@ import logging
 from heapq import heappop,heappush
 from Communication import Communication
 from controlls import Robot
-
+import time
 
 logger = logging.getLogger('Planet')
 
@@ -177,6 +177,11 @@ class Planet:
         self.target = target
 
     def go_direction(self, currentX, currentY):
+        goDirection = self.get_direction((currentX, currentY))
+        # goDirection = Direction.NORTH
+        self.robo.comm.sendPathSelect(currentX,currentY, goDirection)
+        time.sleep(4)
+        
         # self.target maybe need as input
         # self.target_refresh should be controlled by the message somehow
         if self.target is not None and self.shortestPath is None and not self.target_refresh:
@@ -198,7 +203,7 @@ class Planet:
         # reached target
         if self.target == (currentX, currentY):
             self.target = None
-            print('Target reached already!')
+            print('Target reached!')
             return None
         # exloring
         if not self.shortestPath:
@@ -207,8 +212,7 @@ class Planet:
                 # check where to get search for next target
                 if self.check_unknown_directions((currentX, currentY)):
                     # search on current node
-                    goDirection = self.get_direction((currentX,
-                                                                currentY))
+                    goDirection = self.get_direction((currentX, currentY))
                 else:
                     # go to a node with unknown path
                     exploringPath = self.explore_next_node((currentX, currentY))

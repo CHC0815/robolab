@@ -17,7 +17,7 @@ class Communication():
         Runs on thread
     """
 
-    def __init__(self, mqtt_client, planetName=None,test=None):
+    def __init__(self, mqtt_client, planetName=None, test=None):
         """
         Init Comm
         :param mqtt_client: paho.mqtt.client.Client
@@ -39,6 +39,8 @@ class Communication():
         self.client.connect(config.mqtt.domain, port=8883)
 
         self._planetName = planetName
+        self._debug_message = None
+        self._is_input_invalid = False
 
         self.client.loop_start()
 
@@ -72,7 +74,7 @@ class Communication():
 
 
         #explorer messages
-        if topic == "explorer/" + str(config.general.group_id):
+        if topic == 'explorer/' + str(config.general.group_id):
 
             #testplanet message
             if self.payload['from'] == "debug" and self.payload['type'] == "notice":
@@ -82,13 +84,9 @@ class Communication():
             elif self.payload['from'] == "server" and self.payload['type'] == "planet":
                 self.client.subscribe('planet/' + self._planetName + '/' + str(config.general.group_id), 1)
                 # set odometry 
-
                 _startX = int(self.payload['payload']['startX'])
                 _startY = int(self.payload['payload']['startY'])
                 _startDir = int(self.payload['payload']['startOrientation'])
-                print(_startX)
-                print(_startY)
-                print(_startDir)
                 self.robo.odometry.setupRobo(_startX, _startY, _startDir)
 
         #planet messages
@@ -100,10 +98,6 @@ class Communication():
             if self.payload['from'] == "server" and self.payload['type'] == "path":
 
                 print('path message from server')
-
-                _pathStatus = self.payload['payload']['pathStatus']
-                if _pathStatus == "blocked":
-                    _pathStatus = -1
 
                 _startDirection = self.payload['payload']['startDirection']
                 _endDirection = self.payload['payload']['endDirection']
@@ -126,9 +120,9 @@ class Communication():
 
             #path select message
             elif self.payload['from'] == "server" and self.payload['type'] == "pathSelect":
-                #set new direction 
-                if self.payload['payload']['startDirection']:
-                    self.robo.planet.set_direction(self.payload['payload']['startDirection'])
+                #set new direction
+                # TODO TESTING
+                self.robo.planet.set_new_direction(self.payload['payload']['startDirection'])
 
             #path unveiled message
             elif self.payload['from'] == "server" and self.payload['type'] == "pathUnveiled":
@@ -143,15 +137,14 @@ class Communication():
                 
                 start = ((_startX, _startY), _startDirection)
                 end = ((_endX, _endY), _endDirection)
-
                 if _pathStatus == "blocked":
                     _pathWeight = -1
-                self.robo.planet.add_path(start, end, _pathWeight) 
-            
+                self.robo.planet.add_path(start, end, _pathWeight)
+
             #target message
             elif self.payload['from'] == "server" and self.payload['type'] == "target":
                 target = [self.payload['payload']['targetX'], self.payload['payload']['targetY']]
-                self.robo.planet.set_target(target[0], target[1])
+                self.robo.planet.set_target(target)
 
             #complete message
             elif self.payload['from'] == "server" and self.payload['type'] == "done":
@@ -160,16 +153,17 @@ class Communication():
                 self.robo.finished()
 
         #valid_message
-        elif topic == "comtest/" + config.general.group_id + " (Invalid)":
+        elif topic == "comtest/" + str(config.general.group_id) + " (Invalid)":
             if self.payload['from'] == "debug" and self.payload['type'] == "syntax":
                 _debug_message = self.payload['payload']['message']
                 _errors = self.payload['payload']['error']
+                self._is_input_invalid = True
                 logger.debug(_errors)
 
         #invalid_message
-        elif topic == "comtest/" + config.general.group_id + " (Valid)":
+        elif topic == "comtest/" + str(config.general.group_id) + " (Valid)":
            if  self.payload['from'] == "debug" and self.payload['type'] == "syntax":
-             _message = self.payload['payload']['message']
+             _debug_message = self.payload['payload']['message']
 
 
 
@@ -227,7 +221,7 @@ class Communication():
         pathSel_message['payload']['startY'] = startY
         pathSel_message['payload']['startDirection'] = startDirection
 
-        self.send_message("planet/" + self._planetName + '/' + str(config.general.group_id), json.dumps(pathSel_message))
+        self.send_message('planet/' + self._planetName + '/' + str(config.general.group_id), json.dumps(pathSel_message))
 
 
 
@@ -238,6 +232,7 @@ class Communication():
         :param message: Object (to payload)
         :return: void
         """
+
         logger.debug('Send to: ' + topic)
         logger.debug(json.dumps(json.loads(message), indent=4, sort_keys=True))
 
@@ -264,7 +259,7 @@ class Communication():
         exp_message['payload'] = {}
         exp_message['payload']['message'] = _message
 
-        self.send_message('explorer/' + str(config.general.group_id), exp_message)
+        self.send_message('explorer/' + str(config.general.group_id), json.dumps(exp_message))
 
 
     def send_target_completed(self, message=None):
@@ -285,7 +280,7 @@ class Communication():
         target_message['payload'] = {}
         target_message['payload']['message'] = _message
 
-        self.send_message('explorer/' + str(config.general.group_id), target_message)
+        self.send_message('explorer/' + str(config.general.group_id), json.dumps(target_message))
 
 
 
@@ -315,7 +310,6 @@ class Communication():
     def set_testplanet(self, testplanet):
         """
         Only use for test
-
         :param testplanet: Test planet name
         """
 
