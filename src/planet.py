@@ -66,14 +66,14 @@ class Planet:
       
     # adds unknown paths
     def add_unknown_path(self, node):
-        """node should look like:
+        """node like:
         {
             currentNode: [(Direction.NORTH, -2), (Direction.EAST, -1)]
         } Definition: -1 = blocked, -2 = pathAvailable
         """
         key = list(node.keys())[0]
         unknown_paths = list(node.values())[0]      
-        # filter list, remove -1 elements
+        # remove -1 elements
         unknown_paths = [x for x in unknown_paths if -1 not in x]       
         new_unknown_paths = []       
         if unknown_paths :
@@ -95,10 +95,10 @@ class Planet:
     # returns path to next node from node
     def explore_next_node(self, node):
         # maybe there are no paths to discover
-        if not self.unknownPaths and not self.unseenNodes:
-            logger.info("Everything discovered. Finishing exploration.")
+        if not self.unknownPaths: # and not self.unseenNodes
+            logger.info("Every node discovered. Exploring finished.")
             return None
-        logger.info("Performing graph creation...")
+        # creat graphToSearch
         graphList = {}
         for key, value in self.paths.items():
             for targets in value.values():
@@ -119,14 +119,14 @@ class Planet:
         # print('interesting_start_nodes(unknown)+unseenNodes:')
         # print(interesting_start_nodes)
         graph = graphToSearch(graphList, node, interesting_start_nodes) # node is current start node
-        logger.info("...done")
+        logger.info("graphToSearch done.")
         target = graph.find_next_node()
         if target is not None:
             print("Found new target node:")
             print(target)
             return self.shortest_path(node, target)
         else:
-            logger.warning("Function did not exit properly.")
+            logger.warning("Something wrong.")
             return None
 
     # # check whether node is already scanned, return boolean
@@ -146,7 +146,7 @@ class Planet:
             logger.info("Discover unknown direction on current Node")
             return True
         else:
-            logger.info("Go to other node")
+            logger.info("Run exploring next node.")
             return False
 
     def clean_unknown_paths(self):
