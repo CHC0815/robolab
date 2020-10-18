@@ -5,7 +5,8 @@ from enum import IntEnum, unique
 from typing import List, Tuple, Dict, Union, DefaultDict
 import logging
 from heapq import heappop,heappush
-import random
+from Communication import Communication
+from controlls import Robot
 
 
 logger = logging.getLogger('Planet')
@@ -35,7 +36,7 @@ class Planet:
     it according to the specifications
     """
 
-    def __init__(self, robo=None):
+    def __init__(self, robo): # robo = None
         """ Initializes the data structure """
         self.paths = {}
         self.ripeGraphList = [] 
@@ -47,11 +48,16 @@ class Planet:
         {
             (0, 0): [Direction.NORTH, Direction.SOUTH, ...]
         }
-        """
+        """       
+        self.robo = robo
         self.viewedNodes = set()
         self.unseenNodes = []
         self.graph = None
-        self.robo = robo
+
+        self.target_refresh = False
+        self.target = None
+        self.shortestPath = None
+        self.dir = None
 
     ####################################################################################################
     ####################################################################################################
@@ -59,14 +65,14 @@ class Planet:
 
     # adds unknown paths
     def add_unknown_path(self, node):
-        """node should look like:
+        """node like:
         {
             currentNode: [(Direction.NORTH, -2), (Direction.EAST, -1)]
         } Definition: -1 = blocked, -2 = pathAvailable
         """
         key = list(node.keys())[0]
         unknown_paths = list(node.values())[0]      
-        # filter list, remove -1 elements
+        # remove -1 elements
         unknown_paths = [x for x in unknown_paths if -1 not in x]       
         new_unknown_paths = []       
         if unknown_paths :
@@ -80,7 +86,7 @@ class Planet:
     def get_direction(self, node):
         value = self.unknownPaths[node]
         # print(value)
-        directionList= [Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST]
+        directionList = [Direction.EAST, Direction.SOUTH, Direction.WEST, Direction.NORTH]
         for di in directionList:
             if di in value:
                 return di
@@ -88,10 +94,10 @@ class Planet:
     # returns path to next node from node
     def explore_next_node(self, node):
         # maybe there are no paths to discover
-        if not self.unknownPaths and not self.unseenNodes:
-            logger.info("Everything discovered. Finishing exploration.")
+        if not self.unknownPaths: # and not self.unseenNodes
+            logger.info("Every node discovered. Exploring finished.")
             return None
-        logger.info("Performing graph creation...")
+        # creat graphToSearch
         graphList = {}
         for key, value in self.paths.items():
             for targets in value.values():
@@ -112,34 +118,24 @@ class Planet:
         # print('interesting_start_nodes(unknown)+unseenNodes:')
         # print(interesting_start_nodes)
         graph = graphToSearch(graphList, node, interesting_start_nodes) # node is current start node
-        logger.info("...done")
+        logger.info("graphToSearch done.")
         target = graph.find_next_node()
         if target is not None:
             print("Found new target node:")
             print(target)
             return self.shortest_path(node, target)
         else:
-            logger.warning("Function did not exit properly.")
+            logger.warning("Something wrong.")
             return None
 
-    # # check whether node is already scanned, return boolean
-    # def node_viewed(self, node):
-    #     self.clean_unknown_paths()
-    #     if node in self.viewedNodes:
-    #         logger.info("Node already scanned.")
-    #         return True
-    #     else:
-    #         logger.info("Node unknown. Please scan!")
-    #         return False
-
     # check whether there are unknown directions for node, return boolean
-    def able_to_go_direction(self, node):
+    def check_unknown_directions(self, node):
         self.clean_unknown_paths()
         if node in self.unknownPaths:
-            logger.info("Dicover Direction on current Node")
+            logger.info("Discover unknown direction on current Node")
             return True
         else:
-            logger.info("Go to other node")
+            logger.info("Run exploring next node.")
             return False
 
     def clean_unknown_paths(self):
@@ -165,7 +161,71 @@ class Planet:
                 node for node in self.paths.keys()
                 if node not in self.viewedNodes
             ] 
-   
+
+    ####################################################################################################
+    ####################################################################################################
+    ####################################################################################################    
+    
+    # send direction(where to go) to robo
+
+    def set_direction(self, startDir):
+        startDir = Direction(startDir)
+        self.dir = startDir
+
+    def set_target(self, targetX, targetY):
+        target = (int(targetX), int(targetX))
+        self.target = target
+
+    def go_direction(self, currentX, currentY):
+        # self.target maybe need as input
+        # self.target_refresh should be controlled by the message somehow
+        if self.target is not None and self.shortestPath is None and not self.target_refresh:
+            path_possible = self.shortest_path(
+                (currentX, currentY), self.target)
+            if path_possible :
+                self.shortestPath = path_possible
+                exploringPath = None
+        # check existence of target and reachability
+        elif self.target is not None and self.target_refresh:
+            path_possible = self.shortest_path(
+                (currentX, currentY), self.target)
+            if path_possible is not None:
+                self.shortestPath = path_possible
+                exploringPath = None
+            else:
+                self.shortestPath = None
+            self.target_refresh = False
+        # reached target
+        if self.target == (currentX, currentY):
+            self.target = None
+            print('Target reached already!')
+            return None
+        # exloring
+        if not self.shortestPath:
+            # check if there is a running path to a node to discover
+            if not exploringPath:
+                # check where to get search for next target
+                if self.check_unknown_directions((currentX, currentY)):
+                    # search on current node
+                    goDirection = self.get_direction((currentX,
+                                                                currentY))
+                else:
+                    # go to a node with unknown path
+                    exploringPath = self.explore_next_node((currentX, currentY))
+                    if exploringPath is None:
+                        print('Exploring is done, and no nore nodes with unknown paths!')
+                        goDirection = None
+                    else:
+                        goDirection = exploringPath.pop(0)[1]
+            else:
+                goDirection = exploringPath.pop(0)[1]
+        else:
+            goDirection = self.shortestPath.pop(0)[1]
+        
+        print('Direction on the current node:'+ str(goDirection))
+        return goDirection
+       
+
     ####################################################################################################
     ####################################################################################################
     ####################################################################################################
@@ -187,8 +247,8 @@ class Planet:
         # YOUR CODE FOLLOWS (remove pass, please!)
         start_position = start[0]
         start_direction = start[1]
-        target_position = target[0]
-        target_direction = target[1]
+        end_position = target[0]
+        end_direction = target[1]
 
         if (weight > 0) or (weight == -1):
             if start_position in self.paths:
@@ -196,29 +256,29 @@ class Planet:
                 # if start_direction not in self.paths[start_position]:
                 #add new path
                 self.paths[start_position].update(
-                    {start_direction: (target_position, target_direction, weight)})
+                    {start_direction: (end_position, end_direction, weight)})
                 logger.info("new path added")
 
             elif start_position not in self.paths:
                 # start node unknown, then add it to dict 
                 self.paths.update(
                     {start_position: {
-                        start_direction: (target_position,
-                                          target_direction, weight)
+                        start_direction: (end_position,
+                                          end_direction, weight)
                     }})
                 logger.info("new path added")
 
-            if target_position in self.paths:
-                # target node already in dict
-                # if target_direction not in self.paths[target_position]:
-                self.paths[target_position].update(
-                    {target_direction: (start_position, start_direction, weight)})
+            if end_position in self.paths:
+                # end node already in dict
+                # if end_direction not in self.paths[end_position]:
+                self.paths[end_position].update(
+                    {end_direction: (start_position, start_direction, weight)})
 
-            elif target_position not in self.paths:
-                # target node unknown, add it to dict
+            elif end_position not in self.paths:
+                # end node unknown, add it to dict
                 self.paths.update(
-                    {target_position: {
-                        target_direction: (
+                    {end_position: {
+                        end_direction: (
                             start_position, start_direction, weight)
                     }})
 
@@ -227,14 +287,14 @@ class Planet:
         #     if start_position in self.paths:
         #         # node in dict
         #         self.paths[start_position].update(
-        #             {start_direction: (target_position, target_direction, weight)})
+        #             {start_direction: (end_position, end_direction, weight)})
 
         #     elif start_position not in self.paths:
         #         # add node to dict
         #         self.paths.update(
         #             {start_position: {
-        #                 start_direction: (target_position,
-        #                                   target_direction, weight)
+        #                 start_direction: (end_position,
+        #                                   end_direction, weight)
         #             }})
         else:
             logger.error("Path could not be added!")
@@ -428,7 +488,7 @@ class Planet:
         logger.info('cost: ' + str(cost))
         logger.info('shortest path shown in dijkstra: ' + str(pathReturn))
 
-        return cost,pathReturn
+        return cost, pathReturn
     ####################################################################################################
     def nodeFormToListForm(self, nodeForm):
         shortestPathList=[]
@@ -459,7 +519,6 @@ class Planet:
     ####################################################################################################
     ####################################################################################################
     
-
 class graphToSearch:
     def __init__(self, graph, node, nodesWithUnknownPaths):
         self.graph = graph
