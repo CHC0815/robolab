@@ -221,6 +221,7 @@ class TestExploringPlanet(unittest.TestCase):
                             ((3, 5), Direction.WEST), 22)
         self.planet.add_path(((3, 5), Direction.NORTH),
                             ((1, 5), Direction.NORTH), 1)
+        
 
 
         self.planet.add_unknown_path({(1, 5): [(Direction.EAST, -2), (Direction.WEST, -2)]})
