@@ -102,10 +102,8 @@ class Robot():
                 snd.play_node()
                 time.sleep(0.2)
 
-                # calc current position 
+                # calc current position and send path to mothership
                 self.odometry.calc(status)
-
-
                 time.sleep(4)
                 x, y = self.odometry.getNodeCoord()
 
@@ -113,48 +111,65 @@ class Robot():
                 time.sleep(0.5)
                 pathes  = self.scanNode()
 
+                
+                # add node and its directions to the list
+                node_pathes = []
+                if pathes[0]:
+                    node_pathes.append([self.translateRotation(Direction.EAST), -2])
+                if pathes[1]:
+                    node_pathes.append([self.translateRotation(Direction.SOUTH), -2])
+                if pathes[2]:
+                    node_pathes.append([self.translateRotation(Direction.WEST), -2])
+                if pathes[3]:
+                    node_pathes.append([self.translateRotation(Direction.NORTH), -2])            
+                node = {
+                    (x, y): node_pathes
+                }
+                self.planet.add_unknown_path(node)
 
-                # TODO set directions in planet
-                # direction to go: dir = self.planet.go_direction()
-
+                dir = self.planet.go_direction(x, y)
+                dir = self.translateRotationToLocal(dir)
 
                 # TODO planet.getDirToFollow()
                 self.rotateByDegGyro(15)
-                if pathes[0]:
+                if dir == Direction.EAST:
                     #right
                     self.rotateToLine()
                     self.rotateByDegGyro(5, False)
                     self.odometry.addOffset(90)
                     logger.debug('Right')
-                elif pathes[2]:
+                elif dir == Direction.WEST:
                     # left
                     self.rotateByDegGyro(185)
                     self.rotateToLine()
                     self.rotateByDegGyro(5, False)
                     self.odometry.addOffset(270)
                     logger.debug('Left')
-                elif pathes[3]:
+                elif dir == Direction.NORTH:
                     # forward
                     self.rotateByDegGyro(5, False)
                     logger.debug('Forward')
-                else:
+                elif dir == Direction.SOUTH:
                     # dead end - return 
                     self.rotateByDegGyro(85)
                     self.rotateToLine()
                     self.rotateByDegGyro(5, False)
                     self.odometry.addOffset(180)
                     logger.debug('Back')
+                else:
+                    print('Something went wrong')
+                    logger.debug('Something went wrong')
 
-                logger.debug('CURRENT DIRECTION AFTER PATH SELECT: ')
-                logger.debug(self.odometry.direction)
+                # logger.debug('CURRENT DIRECTION AFTER PATH SELECT: ')
+                # logger.debug(self.odometry.direction)
 
-                self.startDirection = self.odometry.direction
-                if not self.odometry.firstNode:
-                    node = self.odometry.currentNode.copy()
-                    self.odometry.fromDirection = self.startDirection
-                    # TODO move to planet script
-                    self.comm.sendPathSelect([node[0], node[1], self.odometry.fromDirection])
-                    time.sleep(3)
+                # self.startDirection = self.odometry.direction
+                # if not self.odometry.firstNode:
+                #     node = self.odometry.currentNode.copy()
+                #     self.odometry.fromDirection = self.startDirection
+                #     # TODO move to planet script
+                #     self.comm.sendPathSelect([node[0], node[1], self.odometry.fromDirection])
+                #     time.sleep(3)
 
             # found obstacle 
             elif status == 2:
@@ -165,6 +180,7 @@ class Robot():
                 self.odometry.addOffset(180)
                 node = [self.odometry.oldNode[0], self.odometry.oldNode[1], self.odometry.fromDirection]
                 self.comm.sendPath(node, node, "blocked")
+                time.sleep(2)
 
 
 
@@ -440,8 +456,12 @@ class Robot():
         self.m_right.stop()
 
     def translateRotation(self, dir: Direction):
-        direction = Direction(((dir + self.odemetry.direction)%360))
+        direction = Direction(((dir + self.odemetry.direction) % 360))
         return direction
 
     def finished(self):
         print('==========FERTIG==========')
+
+    def translateRotationToLocal(self, dir: Direction):
+        direction = Direction(((dir - self.odometry.direction) % 360))
+        return direction

@@ -40,7 +40,7 @@ def run():
     # THE EXECUTION OF ALL CODE SHALL BE STARTED FROM WITHIN THIS FUNCTION.
     # ADD YOUR OWN IMPLEMENTATION HEREAFTER.
 
-    print("Hello World!")
+    print("Star...")
 
     logger.debug('-----------------------------------------------------')
     logger.debug("run motorcontrol in main")
