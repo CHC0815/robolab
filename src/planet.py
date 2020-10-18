@@ -36,7 +36,7 @@ class Planet:
     it according to the specifications
     """
 
-    def __init__(self): #, robo = None, comm: Communication
+    def __init__(self, robo): # robo = None
         """ Initializes the data structure """
         self.paths = {}
         self.ripeGraphList = [] 
@@ -49,8 +49,7 @@ class Planet:
             (0, 0): [Direction.NORTH, Direction.SOUTH, ...]
         }
         """       
-        # self.robo = robo
-        # self.comm = comm
+        self.robo = robo
         self.viewedNodes = set()
         self.unseenNodes = []
         self.graph = None
@@ -58,12 +57,12 @@ class Planet:
         self.target_refresh = False
         self.target = None
         self.shortestPath = None
+        self.dir = None
 
     ####################################################################################################
     ####################################################################################################
     ####################################################################################################
 
-      
     # adds unknown paths
     def add_unknown_path(self, node):
         """node like:
@@ -129,16 +128,6 @@ class Planet:
             logger.warning("Something wrong.")
             return None
 
-    # # check whether node is already scanned, return boolean
-    # def node_viewed(self, node):
-    #     self.clean_unknown_paths()
-    #     if node in self.viewedNodes:
-    #         logger.info("Node already scanned.")
-    #         return True
-    #     else:
-    #         logger.info("Node unknown. Please scan!")
-    #         return False
-
     # check whether there are unknown directions for node, return boolean
     def check_unknown_directions(self, node):
         self.clean_unknown_paths()
@@ -175,17 +164,17 @@ class Planet:
 
     ####################################################################################################
     ####################################################################################################
-    ####################################################################################################
+    ####################################################################################################    
     
+    # send direction(where to go) to robo
 
     def set_direction(self, startDir):
-        return Direction(startDir)
-
+        startDir = Direction(startDir)
+        self.dir = startDir
 
     def set_target(self, targetX, targetY):
         target = (int(targetX), int(targetX))
-        return target
-
+        self.target = target
 
     def go_direction(self, currentX, currentY):
         # self.target maybe need as input
