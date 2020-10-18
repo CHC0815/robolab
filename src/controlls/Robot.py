@@ -19,7 +19,7 @@ class Robot():
         self.PID = PID()
         self.wheelbase = 152 # mm
         self.comm = comm
-        self.planet = Planet() # self
+        self.planet = Planet(self)
 
         # ultra sonic sensor
         self.us = ev3.UltrasonicSensor()

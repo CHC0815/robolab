@@ -80,11 +80,17 @@ class Communication():
 
             #ready message
             elif self.payload['from'] == "server" and self.payload['type'] == "planet":
-                self.client.subscribe('planet/' + self._planetName + '/' + config.general.group_id, 1)
+                print('comm setup robo 1')
+                self.client.subscribe('planet/' + self._planetName + '/' + str(config.general.group_id), 1)
                 # set odometry 
+                print('comm setup robo 2')
+
                 _startX = int(self.payload['payload']['startX'])
                 _startY = int(self.payload['payload']['startY'])
                 _startDir = int(self.payload['payload']['startOrientation'])
+                print(_startX)
+                print(_startY)
+                print(_startDir)
                 self.robo.odometry.setupRobo(_startX, _startY, _startDir)
 
         #planet messages
@@ -121,7 +127,7 @@ class Communication():
             elif self.payload['from'] == "server" and self.payload['type'] == "pathSelect":
                 #set new direction
                 # TODO TESTING
-                self.robo.planet.set_new_direction(self.payload['payload']['startDirection'])
+                self.robo.planet.set_direction(int(self.payload['payload']['startDirection']))
             #path unveiled message
             elif self.payload['from'] == "server" and self.payload['type'] == "pathUnveiled":
                 _startX = self.payload['payload']['startX']
@@ -141,7 +147,7 @@ class Communication():
             #target message
             elif self.payload['from'] == "server" and self.payload['type'] == "target":
                 target = [self.payload['payload']['targetX'], self.payload['payload']['targetY']]
-                self.robo.planet.set_target(target)
+                self.robo.planet.set_target(target[0], target[1])
 
             #complete message
             elif self.payload['from'] == "server" and self.payload['type'] == "done":
