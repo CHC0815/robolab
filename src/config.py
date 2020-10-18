@@ -1,14 +1,7 @@
 """
 Config
-ALle häufig verwendeten Werte, Strings ect.
-Zentrale Anlaufstelle zum konfigurieren variabler Inhalte
+central contact point for configuring variable content
 """
-
-
-
-class motor_settings:
-    bla = 4
-
 
 
 class general:
@@ -26,7 +19,6 @@ class mqtt:
     websocket_port = 9002
 
     #quality of service QoS
-
     #The message reaches the recipients at least once
     qos_level = 1
 
