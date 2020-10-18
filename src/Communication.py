@@ -39,6 +39,8 @@ class Communication():
         self.client.connect(config.mqtt.domain, port=8883)
 
         self._planetName = planetName
+        self._debug_message = None
+        self._is_input_invalid = False
 
         self.client.loop_start()
 
@@ -96,7 +98,6 @@ class Communication():
             if self.payload['from'] == "server" and self.payload['type'] == "path":
 
                 print('path message from server')
-
 
                 _startDirection = self.payload['payload']['startDirection']
                 _endDirection = self.payload['payload']['endDirection']
@@ -156,12 +157,13 @@ class Communication():
             if self.payload['from'] == "debug" and self.payload['type'] == "syntax":
                 _debug_message = self.payload['payload']['message']
                 _errors = self.payload['payload']['error']
+                self._is_input_invalid = True
                 logger.debug(_errors)
 
         #invalid_message
         elif topic == "comtest/" + str(config.general.group_id) + " (Valid)":
            if  self.payload['from'] == "debug" and self.payload['type'] == "syntax":
-             _message = self.payload['payload']['message']
+             _debug_message = self.payload['payload']['message']
 
 
 
@@ -219,7 +221,7 @@ class Communication():
         pathSel_message['payload']['startY'] = startY
         pathSel_message['payload']['startDirection'] = startDirection
 
-        self.send_message("planet/" + self._planetName + '/' + str(config.general.group_id), json.dumps(pathSel_message))
+        self.send_message('planet/' + self._planetName + '/' + str(config.general.group_id), json.dumps(pathSel_message))
 
 
 
@@ -230,6 +232,7 @@ class Communication():
         :param message: Object (to payload)
         :return: void
         """
+
         logger.debug('Send to: ' + topic)
         logger.debug(json.dumps(json.loads(message), indent=4, sort_keys=True))
 
@@ -256,7 +259,7 @@ class Communication():
         exp_message['payload'] = {}
         exp_message['payload']['message'] = _message
 
-        self.send_message('explorer/' + str(config.general.group_id), exp_message)
+        self.send_message('explorer/' + str(config.general.group_id), json.dumps(exp_message))
 
 
     def send_target_completed(self, message=None):
@@ -277,7 +280,7 @@ class Communication():
         target_message['payload'] = {}
         target_message['payload']['message'] = _message
 
-        self.send_message('explorer/' + str(config.general.group_id), target_message)
+        self.send_message('explorer/' + str(config.general.group_id), json.dumps(target_message))
 
 
 
