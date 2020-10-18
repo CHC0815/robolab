@@ -131,7 +131,7 @@ class Robot():
                 dir = self.translateRotationToLocal(dir)
 
                 # TODO planet.getDirToFollow()
-                self.rotateByDegGyro(15)
+                self.rotateByDegGyro(30)
                 if dir == Direction.EAST:
                     #right
                     self.rotateToLine()
@@ -147,7 +147,7 @@ class Robot():
                     logger.debug('Left')
                 elif dir == Direction.NORTH:
                     # forward
-                    self.rotateByDegGyro(5, False)
+                    self.rotateByDegGyro(20, False)
                     logger.debug('Forward')
                 elif dir == Direction.SOUTH:
                     # dead end - return 
@@ -159,6 +159,8 @@ class Robot():
                 else:
                     print('Something went wrong')
                     logger.debug('Something went wrong')
+
+                self.odometry.fromDirection = self.odometry.direction
 
             # found obstacle 
             elif status == 2:
