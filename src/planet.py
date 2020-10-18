@@ -6,7 +6,6 @@ from typing import List, Tuple, Dict, Union, DefaultDict
 import logging
 from heapq import heappop,heappush
 from Communication import Communication
-from controlls import Robot
 import time
 
 logger = logging.getLogger('Planet')
@@ -58,6 +57,7 @@ class Planet:
         self.target = None
         self.shortestPath = None
         self.dir = None
+        self.exploringPath = None
 
     ####################################################################################################
     ####################################################################################################
@@ -179,7 +179,8 @@ class Planet:
     def go_direction(self, currentX, currentY):
         goDirection = self.get_direction((currentX, currentY))
         # goDirection = Direction.NORTH
-        self.robo.comm.sendPathSelect(currentX,currentY, goDirection)
+        node = [currentX, currentY, goDirection]
+        self.robo.comm.sendPathSelect(node)
         time.sleep(4)
         
         # self.target maybe need as input
@@ -189,14 +190,14 @@ class Planet:
                 (currentX, currentY), self.target)
             if path_possible :
                 self.shortestPath = path_possible
-                exploringPath = None
+                self.exploringPath = None
         # check existence of target and reachability
         elif self.target is not None and self.target_refresh:
             path_possible = self.shortest_path(
                 (currentX, currentY), self.target)
             if path_possible is not None:
                 self.shortestPath = path_possible
-                exploringPath = None
+                self.exploringPath = None
             else:
                 self.shortestPath = None
             self.target_refresh = False
@@ -208,7 +209,7 @@ class Planet:
         # exloring
         if not self.shortestPath:
             # check if there is a running path to a node to discover
-            if not exploringPath:
+            if not self.exploringPath:
                 # check where to get search for next target
                 if self.check_unknown_directions((currentX, currentY)):
                     # search on current node

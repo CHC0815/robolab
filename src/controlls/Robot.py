@@ -160,17 +160,6 @@ class Robot():
                     print('Something went wrong')
                     logger.debug('Something went wrong')
 
-                # logger.debug('CURRENT DIRECTION AFTER PATH SELECT: ')
-                # logger.debug(self.odometry.direction)
-
-                # self.startDirection = self.odometry.direction
-                # if not self.odometry.firstNode:
-                #     node = self.odometry.currentNode.copy()
-                #     self.odometry.fromDirection = self.startDirection
-                #     # TODO move to planet script
-                #     self.comm.sendPathSelect([node[0], node[1], self.odometry.fromDirection])
-                #     time.sleep(3)
-
             # found obstacle 
             elif status == 2:
                 snd.play_obstacle()
@@ -456,7 +445,7 @@ class Robot():
         self.m_right.stop()
 
     def translateRotation(self, dir: Direction):
-        direction = Direction(((dir + self.odemetry.direction) % 360))
+        direction = Direction(((dir + self.odometry.direction) % 360))
         return direction
 
     def finished(self):
