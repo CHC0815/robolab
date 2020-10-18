@@ -2,6 +2,7 @@
 import math
 import logging
 import csv
+import time
 
 from planet import Direction
 
@@ -29,8 +30,6 @@ class Odometry:
         self.fromDirection = Direction.NORTH
         self.toDirection = Direction.NORTH
 
-
-
     def addData(self, left, right):
         """
         adds left and right motor position to dataList
@@ -40,17 +39,16 @@ class Odometry:
         d = [left, right]
         self.dataList.append(d)
 
-
     def calc(self, color):
-
+        self.oldNode = self.currentNode
+        
         # first node was set by mothership
         if self.firstNode:
             self.firstNode = False
-            self.updateRobo(1, 1, Direction.NORTH)
             self.robot.comm.set_testplanet("Examinator-A-1337r")
             self.robot.comm.send_ready()
+            time.sleep(3)
             return
-
 
         prev = self.dataList[0]
         gamma = self.rot
@@ -67,7 +65,7 @@ class Odometry:
 
             if alpha != 0:
                 s = ((dist_right + dist_left) / alpha) * math.sin(beta)
-            else:
+            else:                                
                 s = dist_left
 
             dx = math.sin(gamma + beta) * s
@@ -82,9 +80,9 @@ class Odometry:
         self.pos[0] += delta_x
         self.pos[1] += delta_y
         self.dataList.clear()
-        self.rot += gamma
+        self.rot = gamma
         self.rot = self.normAngleRad(self.rot)
-        self.rot = self.rddoundRotation()
+        self.rot = self.roundRotation()
 
         self.direction = self.angleToDirection(self.rot)
         self.pos[0], self.pos[1] = self.roundPos()
@@ -107,7 +105,6 @@ class Odometry:
         logger.debug(endNode)
 
         self.robot.comm.sendPath(startNode, endNode, "free")
-        self.oldNode = self.currentNode
 
 
     def radToDeg(self, rad):
@@ -116,7 +113,7 @@ class Odometry:
         :param float: angle (rad)
         :return float: angle (deg)
         """
-        deg = rad * 57.296
+        deg = math.degrees(rad)
         return deg
 
     def degToRad(self, deg):
@@ -125,7 +122,8 @@ class Odometry:
         :param float: angle (deg)
         :return float: angle(rad)
         """
-        return (deg / 57.296)
+        rad = math.radians(deg)
+        return rad
 
     def addOffset(self, offset):
         """
@@ -134,15 +132,28 @@ class Odometry:
         """
         self.rot += self.degToRad(offset)
         self.rot = self.normAngleRad(self.rot)
+        self.direction = self.angleToDirection(self.rot)
 
     def normAngleRad(self, angle):
         """
-        normalizes an angle (-180/180)
+        normalizes an angle (0/2*pi)
+        :param float: angle
+        :return void
         """
-        while(angle <= -math.pi):
-            angle += 2 * math.pi
-        while(angle > math.pi):
-            angle -= 2 * math.pi
+        angle = angle % (2*math.pi)
+        return angle
+
+    def normAngleDeg(self, angle):
+        """
+        normalizes an angle(0/360)
+        :param float: angle
+        :return void
+        """
+        #while(angle <= -180):
+        #    angle += 360
+        #while(angle > 180):
+        #    angle -= 360
+        angle = angle % 360
         return angle
 
     def currentDirection(self):
@@ -158,18 +169,16 @@ class Odometry:
         :param float: angle
         :return Direction
         """
-        # angle = self.normAngleRad(angle)
-        angle += (2*math.pi) # positive
         angle = angle % (2*math.pi)
 
         if angle <= (math.pi * 1/4) or angle > (math.pi * 7/4):
             return Direction.NORTH
         elif angle >= (math.pi * 1/4) and angle < (math.pi * 3/4):
-            return Direction.WEST
+            return Direction.EAST
         elif angle >= (math.pi * 3/4) and angle < (math.pi * 5/4):
             return Direction.SOUTH
         elif angle >= (math.pi * 5/4) and angle < (math.pi * 7/4):
-            return Direction.EAST 
+            return Direction.WEST 
 
     def directionToAngle(self, dir: Direction):
         if dir == Direction.NORTH:
@@ -180,6 +189,18 @@ class Odometry:
             return 180
         elif dir == Direction.WEST:
             return 270
+
+        
+    def directionToRadian(self, dir: Direction):
+        if dir == Direction.NORTH:
+            return 0
+        elif dir == Direction.EAST:
+            return (1/2 * math.pi)
+        elif dir == Direction.SOUTH:
+            return math.pi
+        elif dir == Direction.WEST:
+            return (6/4 * math.pi)
+
 
     def motorPosToDist(self, start, end):
         """
@@ -211,18 +232,28 @@ class Odometry:
         rounds the current rotation
         :return float
         """
-        return self.degToRad(round(self.rot / 90) * 90)
+        deg = self.radToDeg(self.rot)
+        deg = round(deg / 90) * 90
+        return self.degToRad(deg)
 
     def updateRobo(self, posX, posY, direction):
         self.pos[0] = posX * 50
         self.pos[1] = posY * 50
-        self.direction = self.angleToDirection(direction)
-        if self.firstNode:
-            self.oldNode = [posX, posY, direction]
-        else:
-            self.currentNode = [posX, posY, direction]
+        self.direction = self.oppositeDirection(Direction(direction))
+        self.toDirection = self.direction
+        self.currentNode = [posX, posY]
 
-        logger.debug('Updated Robo Pos/Dir...')
+        self.rot = self.directionToRadian(self.direction)
+        logger.debug('Updated Robo: ' + str(self.pos[0]) + '/' + str(self.pos[1]) + ' ' + str(self.direction))
+
+    def setupRobo(self, posX, posY, startDirection):
+        self.pos[0] = posX * 50
+        self.pos[1] = posY * 50
+        self.direction = Direction(startDirection)
+        self.oldNode = [posX, posY]
+        self.currentNode = [posX, posY]
+        logger.debug('Robot was set up...')
+
 
     def oppositeDirection(self, dir: Direction):
         if dir == Direction.NORTH:

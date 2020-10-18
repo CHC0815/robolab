@@ -65,7 +65,6 @@ class Communication():
             return
 
         if self.payload['from'] == "debug":
-            # print(json.dumps(self.payload, indent=4, sort_keys=True))
             return
 
         logger.debug('Got message with topic "{}":'.format(message.topic))
@@ -81,12 +80,16 @@ class Communication():
 
             #ready message
             elif self.payload['from'] == "server" and self.payload['type'] == "planet":
+<<<<<<< HEAD
                 self.client.subscribe('planet/' + self._planetName + '/' +config.general.group_id, 1)
+=======
+                self.client.subscribe('planet/' + self._planetName + '/' + config.general.group_id, 1)
+>>>>>>> f2c03505eed6752b7e6a0681ca37e543bb93cb36
                 # set odometry 
                 _startX = int(self.payload['payload']['startX'])
                 _startY = int(self.payload['payload']['startY'])
                 _startDir = int(self.payload['payload']['startOrientation'])
-                self.robo.odometry.updateRobo(_startX, _startY, _startDir)
+                self.robo.odometry.setupRobo(_startX, _startY, _startDir)
 
         #planet messages
         elif topic == "planet/" + self._planetName + "/" + str(config.general.group_id):
@@ -98,9 +101,12 @@ class Communication():
 
                 print('path message from server')
 
+<<<<<<< HEAD
                 _pathStatus = self.payload['payload']['pathStatus']
                 if _pathStatus == "blocked":
                     _pathStatus = -1
+=======
+>>>>>>> f2c03505eed6752b7e6a0681ca37e543bb93cb36
 
                 _startDirection = self.payload['payload']['startDirection']
                 _endDirection = self.payload['payload']['endDirection']
@@ -109,22 +115,32 @@ class Communication():
                 _endX = self.payload['payload']['endX']
                 _endY = self.payload['payload']['endY']
                 _pathWeight = self.payload['payload']['pathWeight']
+                _pathStatus = self.payload['payload']['pathStatus']
+
+                if _pathStatus == "blocked":
+                    _pathWeight = -1
 
                 start = ((_startX, _startY), _startDirection)
                 target = ((_endX, _endY), _endDirection)
 
                 #add new path
-                self.robo.planet.add_path(start, target, _pathWeight)
                 self.robo.odometry.updateRobo(_endX, _endY, _endDirection)
+                self.robo.planet.add_path(start, target, _pathWeight)
 
             #path select message
             elif self.payload['from'] == "server" and self.payload['type'] == "pathSelect":
+<<<<<<< HEAD
                 #set new direction 
                 ##########################################################
                 #
                 if self.payload['payload']['startDirection']:
                     self.robo.planet.set_direction(self.payload['payload']['startDirection'])
 
+=======
+                #set new direction
+                # TODO TESTING
+                self.robo.planet.set_new_direction(self.payload['payload']['startDirection'])
+>>>>>>> f2c03505eed6752b7e6a0681ca37e543bb93cb36
             #path unveiled message
             elif self.payload['from'] == "server" and self.payload['type'] == "pathUnveiled":
                 _startX = self.payload['payload']['startX']
@@ -138,7 +154,10 @@ class Communication():
                 
                 start = ((_startX, _startY), _startDirection)
                 end = ((_endX, _endY), _endDirection)
+<<<<<<< HEAD
                 
+=======
+>>>>>>> f2c03505eed6752b7e6a0681ca37e543bb93cb36
                 if _pathStatus == "blocked":
                     _pathWeight = -1
                 self.robo.planet.add_path(start, end, _pathWeight) 
