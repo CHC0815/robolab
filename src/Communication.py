@@ -17,7 +17,7 @@ class Communication():
         Runs on thread
     """
 
-    def __init__(self, mqtt_client, planetName=None, test=None):
+    def __init__(self, mqtt_client, planetName=None):
         """
         Init Comm
         :param mqtt_client: paho.mqtt.client.Client
@@ -91,9 +91,6 @@ class Communication():
 
         #planet messages
         elif topic == "planet/" + self._planetName + "/" + str(config.general.group_id):
-            
-            print('planet message from server')
-
             #path message
             if self.payload['from'] == "server" and self.payload['type'] == "path":
 
@@ -121,7 +118,6 @@ class Communication():
             #path select message
             elif self.payload['from'] == "server" and self.payload['type'] == "pathSelect":
                 #set new direction
-                # TODO TESTING
                 self.robo.planet.set_new_direction(self.payload['payload']['startDirection'])
 
             #path unveiled message
@@ -149,7 +145,6 @@ class Communication():
             #complete message
             elif self.payload['from'] == "server" and self.payload['type'] == "done":
                 _complete_message = self.payload['payload']['message']
-
                 self.robo.finished()
 
         #valid_message

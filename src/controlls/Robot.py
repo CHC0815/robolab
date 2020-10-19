@@ -130,7 +130,6 @@ class Robot():
                 dir = self.planet.go_direction(x, y)
                 dir = self.translateRotationToLocal(dir)
 
-                # TODO planet.getDirToFollow()
                 self.rotateByDegGyro(30)
                 if dir == Direction.EAST:
                     #right
@@ -302,7 +301,6 @@ class Robot():
 
             self.odometry.addData(self.m_left.position, self.m_right.position)
     
-    
     def readDistance(self):
         """, self.gyro.value()
         returns the current distance
@@ -452,6 +450,9 @@ class Robot():
 
     def finished(self):
         print('==========FERTIG==========')
+        self.comm.stopp_comm()
+        quit()
+
 
     def translateRotationToLocal(self, dir: Direction):
         direction = Direction(((dir - self.odometry.direction) % 360))
