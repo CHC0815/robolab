@@ -50,7 +50,11 @@ def run():
     #Sound.play_startup()
     #time.sleep(4)
     start = time.time()
-    c = Communication(client, planetName="Mehl") # , planetName="Examinator-A-1337r"
+    
+    # planetName="Examinator-A-1337r"
+    # planetName="Mehl"
+    
+    c = Communication(client, planetName="Examinator-A-1337r") 
     r = Robot(c)
     c.init(r)
     r.run()

@@ -251,8 +251,7 @@ class Planet:
 
     def go_direction(self, currentX, currentY):
         goDir = self.directionToPathSelect(currentX, currentY)
-        if goDir == None:
-            return None
+
         node = [currentX, currentY, goDir]
         self.robo.comm.sendPathSelect(node)
         time.sleep(3)
@@ -299,9 +298,12 @@ class Planet:
                         if self.exploringPath is None:
                             
                             time.sleep(3)
+                            logger.debug('Moin')
                             if not self.target == None:
+                                logger.debug('servus')
                                 path_possible = self.shortest_path((currentX, currentY), self.target)
                                 if path_possible:
+                                    logger.debug('moin 2')
                                     self.shortest_path = path_possible
                                     self.exploringPath = None
                                     goDirection = self.shortestPath.pop(0)[1]
@@ -316,7 +318,12 @@ class Planet:
                     goDirection = self.exploringPath.pop(0)[1]
             else:
                 goDirection = self.shortestPath.pop(0)[1]
-            
+
+
+        node = [currentX, currentY, goDirection]
+        self.robo.comm.sendPathSelect(node)
+        time.sleep(3)
+        
         print('Direction on the current node:'+ str(goDirection))
         return goDirection
        
