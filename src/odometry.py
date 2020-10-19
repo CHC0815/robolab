@@ -49,7 +49,6 @@ class Odometry:
             self.robot.comm.send_ready()
             time.sleep(3)
             return
-        logger.debug('odo calc')
 
         prev = self.dataList[0]
         gamma = self.rot
