@@ -129,11 +129,13 @@ class Robot():
                         (x, y): node_pathes
                     }
                     self.planet.add_unknown_path(node)
+                else:
+                    time.sleep(2)
 
                 dir = self.planet.go_direction(x, y)
                 dir = self.translateRotationToLocal(dir)
 
-                self.rotateByDegGyro(25)
+                self.rotateByDegGyro(45)
                 if dir == Direction.EAST:
                     #right
                     self.rotateToLine()
@@ -142,18 +144,18 @@ class Robot():
                     logger.debug('Right')
                 elif dir == Direction.WEST:
                     # left
-                    self.rotateByDegGyro(185)
+                    self.rotateByDegGyro(180)
                     self.rotateToLine()
                     self.rotateByDegGyro(5, False)
                     self.odometry.addOffset(270)
                     logger.debug('Left')
                 elif dir == Direction.NORTH:
                     # forward
-                    self.rotateByDegGyro(20, False)
+                    self.rotateByDegGyro(50, False)
                     logger.debug('Forward')
                 elif dir == Direction.SOUTH:
                     # dead end - return 
-                    self.rotateByDegGyro(85)
+                    self.rotateByDegGyro(90)
                     self.rotateToLine()
                     self.rotateByDegGyro(5, False)
                     self.odometry.addOffset(180)
@@ -172,7 +174,8 @@ class Robot():
                 self.rotateToLine()
                 self.odometry.addOffset(180)
                 node = [self.odometry.oldNode[0], self.odometry.oldNode[1], self.odometry.fromDirection]
-                self.comm.sendPath(node, node, "blocked")
+                node2 = [node[0], node[1], self.odometry.oppositeDirection(node[2])]
+                self.comm.sendPath(node, node2, "blocked")
                 time.sleep(2)
 
 
