@@ -15,7 +15,7 @@ class Odometry:
         """
         self.robot = robo
         self.distance_per_tick = (5.5 * math.pi) / self.robot.m_left.count_per_rot
-        self.wheelbase = 15 # min(12.3) max(17.4)
+        self.wheelbase = 14 # min(12.3) max(17.4)
 
         self.dataList = []
 
@@ -44,7 +44,6 @@ class Odometry:
         
         # first node was set by mothership
         if self.firstNode:
-            self.firstNode = False
             self.robot.comm.set_testplanet(self.robot.comm._planetName)
             self.robot.comm.send_ready()
             time.sleep(3)

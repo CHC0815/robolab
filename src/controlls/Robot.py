@@ -187,7 +187,8 @@ class Robot():
                 self.comm.sendPath(node, node2, "blocked")
                 time.sleep(2)
 
-
+            if self.odometry.firstNode:
+                self.odometry.firstNode = False
 
     # calibrates colors in following order: red, blue, white, black
     def calibrate(self):

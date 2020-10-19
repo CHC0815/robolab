@@ -95,7 +95,6 @@ class Communication():
                 _complete_message = self.payload['payload']['message']
                 logger.debug(_complete_message)
                 self.robo.isRunning = False
-                self.robo.finished()
 
         #planet messages
         elif topic == "planet/" + self._planetName + "/" + str(config.general.group_id):

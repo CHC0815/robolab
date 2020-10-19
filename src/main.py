@@ -49,10 +49,14 @@ def run():
     #ev3.Sound.set_volume(100)
     #Sound.play_startup()
     #time.sleep(4)
+    start = time.time()
     c = Communication(client, planetName="Mehl") # , planetName="Examinator-A-1337r"
     r = Robot(c)
     c.init(r)
     r.run()
+    end = time.time()
+    totalTime = (end-start) / 60
+    logger.debug('Der Robo hat ' + str(totalTime) + ' Minuten gebraucht')
 
 # DO NOT EDIT
 if __name__ == '__main__':

@@ -237,6 +237,7 @@ class Planet:
                     self.exploringPath = self.explore_next_node((currentX, currentY))
                     if self.exploringPath is None:
                         print('Exploring is done, and no nore nodes with unknown paths!')
+                        self.robo.isRunning = True
                         goDirection = None
                     else:
                         goDirection = self.exploringPath[0][1]
@@ -290,12 +291,23 @@ class Planet:
                 if not self.exploringPath:
                     # check if possible direction exists on current node
                     if self.check_unknown_directions((currentX, currentY)):
-                        # search possible direction on current node
+                        # search possible direction on current node    
                         goDirection = self.get_direction((currentX, currentY))
                     else:
                         # go to a node with unknown path
                         self.exploringPath = self.explore_next_node((currentX, currentY))
                         if self.exploringPath is None:
+                            
+                            time.sleep(3)
+                            if not self.target == None:
+                                path_possible = self.shortest_path((currentX, currentY), self.target)
+                                if path_possible:
+                                    self.shortest_path = path_possible
+                                    self.exploringPath = None
+                                    goDirection = self.shortestPath.pop(0)[1]
+                                    print('Direction on the current node:'+ str(goDirection))
+                                    return goDirection
+
                             print('Exploring is done, and no nore nodes with unknown paths!')
                             goDirection = None
                         else:
