@@ -95,6 +95,7 @@ class Communication():
                 _complete_message = self.payload['payload']['message']
                 logger.debug(_complete_message)
                 self.robo.isRunning = False
+                self.robo.finished()
 
         #planet messages
         elif topic == "planet/" + self._planetName + "/" + str(config.general.group_id):
@@ -125,7 +126,7 @@ class Communication():
             #path select message
             elif self.payload['from'] == "server" and self.payload['type'] == "pathSelect":
                 #set new direction
-                self.robo.planet.set_new_direction(self.payload['payload']['startDirection'])
+                self.robo.planet.set_direction(self.payload['payload']['startDirection'])
 
             #path unveiled message
             elif self.payload['from'] == "server" and self.payload['type'] == "pathUnveiled":

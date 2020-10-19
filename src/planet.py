@@ -219,11 +219,11 @@ class Planet:
         # this direction is sent to mother ship
         # check if there is a running shortestPath
         if self.target == (currentX, currentY):
-                self.target = None
-                logger.debug('Target reached!')
-                self.robo.comm.send_target_completed('Done')
-                time.sleep(3)
-                return None
+            self.target = None
+            logger.debug('Target reached!')
+            self.robo.comm.send_target_completed('Done')
+            time.sleep(3)
+            return None
 
         if not self.shortestPath:
             # exploring, check if there is a running explored path
@@ -250,9 +250,11 @@ class Planet:
 
     def go_direction(self, currentX, currentY):
         goDir = self.directionToPathSelect(currentX, currentY)
+        if goDir == None:
+            return None
         node = [currentX, currentY, goDir]
         self.robo.comm.sendPathSelect(node)
-        time.sleep(4)
+        time.sleep(3)
         
         if self.dir and self.dir_refresh:
             goDirection = self.dir

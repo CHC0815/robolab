@@ -111,11 +111,10 @@ class Robot():
 
                 # calc current position and send path to mothership
                 self.odometry.calc(status)
-                time.sleep(4)
+                time.sleep(3)
                 x, y = self.odometry.getNodeCoord()
 
                 self.moveCm(7)
-                time.sleep(0.5)
 
                 if not self.isNodeAlreadyScanned(x, y):
                     pathes  = self.scanNode()
@@ -125,7 +124,7 @@ class Robot():
                     node_pathes = []
                     if pathes[0]:
                         node_pathes.append([self.translateRotation(Direction.EAST), -2])
-                    if pathes[1]:
+                    if pathes[1] and not self.odometry.firstNode:
                         node_pathes.append([self.translateRotation(Direction.SOUTH), -2])
                     if pathes[2]:
                         node_pathes.append([self.translateRotation(Direction.WEST), -2])
@@ -134,36 +133,38 @@ class Robot():
                     node = {
                         (x, y): node_pathes
                     }
+                    logger.debug(node)
                     self.planet.add_unknown_path(node)
                 else:
-                    time.sleep(4)
+                    time.sleep(3)
 
                 dir = self.planet.go_direction(x, y)
                 if dir == None:
+                    self.finished()
                     return
                 dir = self.translateRotationToLocal(dir)
 
-                self.rotateByDegGyro(45)
                 if dir == Direction.EAST:
                     #right
+                    self.rotateByDegGyro(45)
                     self.rotateToLine()
                     self.rotateByDegGyro(5, False)
                     self.odometry.addOffset(90)
                     logger.debug('Right')
                 elif dir == Direction.WEST:
                     # left
-                    self.rotateByDegGyro(180)
+                    self.rotateByDegGyro(225)
                     self.rotateToLine()
                     self.rotateByDegGyro(5, False)
                     self.odometry.addOffset(270)
                     logger.debug('Left')
                 elif dir == Direction.NORTH:
                     # forward
-                    self.rotateByDegGyro(50, False)
+                    self.rotateByDegGyro(5, False)
                     logger.debug('Forward')
                 elif dir == Direction.SOUTH:
                     # dead end - return 
-                    self.rotateByDegGyro(90)
+                    self.rotateByDegGyro(135)
                     self.rotateToLine()
                     self.rotateByDegGyro(5, False)
                     self.odometry.addOffset(180)

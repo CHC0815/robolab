@@ -45,7 +45,7 @@ class Odometry:
         # first node was set by mothership
         if self.firstNode:
             self.firstNode = False
-            self.robot.comm.set_testplanet("Examinator-A-1337r")
+            self.robot.comm.set_testplanet(self.robot.comm._planetName)
             self.robot.comm.send_ready()
             time.sleep(3)
             return
@@ -252,6 +252,7 @@ class Odometry:
         self.direction = Direction(startDirection)
         self.oldNode = [posX, posY]
         self.currentNode = [posX, posY]
+        
         logger.debug('Robot was set up...')
 
 

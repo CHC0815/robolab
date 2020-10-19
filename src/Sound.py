@@ -11,4 +11,4 @@ def play_obstacle():
     return Sound.play('/home/robot/src/music/obstacle.wav')
 
 def play_victory():
-    return Sound.play('/home/robot/src/music&victory.wav')
+    return Sound.play('/home/robot/src/music/victory.wav')

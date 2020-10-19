@@ -4,7 +4,7 @@ class PID:
         self.Ki = 1
         self.Kd = 20
         self.offset = 200
-        self.Tp = 100
+        self.Tp = 120
         self.integral = 0
         self.lastError = 0
         self.derivative = 0
