@@ -58,6 +58,7 @@ class Robot():
 
         self.oldNodePathes = []
         self.startDirection = 0
+        self.discoveredNodes = []
 
 
     def scanNode(self):
@@ -109,28 +110,30 @@ class Robot():
 
                 self.moveCm(6)
                 time.sleep(0.5)
-                pathes  = self.scanNode()
 
-                
-                # add node and its directions to the list
-                node_pathes = []
-                if pathes[0]:
-                    node_pathes.append([self.translateRotation(Direction.EAST), -2])
-                if pathes[1]:
-                    node_pathes.append([self.translateRotation(Direction.SOUTH), -2])
-                if pathes[2]:
-                    node_pathes.append([self.translateRotation(Direction.WEST), -2])
-                if pathes[3]:
-                    node_pathes.append([self.translateRotation(Direction.NORTH), -2])            
-                node = {
-                    (x, y): node_pathes
-                }
-                self.planet.add_unknown_path(node)
+                if not self.isNodeAlreadyScanned(x, y):
+                    pathes  = self.scanNode()
+                    self.discoveredNodes.append([x, y])
+                    
+                    # add node and its directions to the list
+                    node_pathes = []
+                    if pathes[0]:
+                        node_pathes.append([self.translateRotation(Direction.EAST), -2])
+                    if pathes[1]:
+                        node_pathes.append([self.translateRotation(Direction.SOUTH), -2])
+                    if pathes[2]:
+                        node_pathes.append([self.translateRotation(Direction.WEST), -2])
+                    if pathes[3]:
+                        node_pathes.append([self.translateRotation(Direction.NORTH), -2])            
+                    node = {
+                        (x, y): node_pathes
+                    }
+                    self.planet.add_unknown_path(node)
 
                 dir = self.planet.go_direction(x, y)
                 dir = self.translateRotationToLocal(dir)
 
-                self.rotateByDegGyro(30)
+                self.rotateByDegGyro(25)
                 if dir == Direction.EAST:
                     #right
                     self.rotateToLine()
@@ -450,10 +453,19 @@ class Robot():
 
     def finished(self):
         print('==========FERTIG==========')
+        snd.play_victory()
         self.comm.stopp_comm()
         quit()
-
 
     def translateRotationToLocal(self, dir: Direction):
         direction = Direction(((dir - self.odometry.direction) % 360))
         return direction
+
+    def isNodeAlreadyScanned(self, x, y):
+        
+        node = [x, y]
+
+        inList = (node in self.discoveredNodes)
+        logger.debug('Current node already scanned: ' + str(inList))
+        return inList
+

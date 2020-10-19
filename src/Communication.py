@@ -82,6 +82,7 @@ class Communication():
 
             #ready message
             elif self.payload['from'] == "server" and self.payload['type'] == "planet":
+                self._planetName = self.payload['payload']['planetName']
                 self.client.subscribe('planet/' + self._planetName + '/' + str(config.general.group_id), 1)
                 # set odometry 
                 _startX = int(self.payload['payload']['startX'])

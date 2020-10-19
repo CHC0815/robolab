@@ -248,7 +248,8 @@ class Planet:
 
     def go_direction(self, currentX, currentY):
         goDir = self.directionToPathSelect(currentX, currentY)
-        self.robo.comm.sendPathSelect(currentX,currentY, goDir)
+        node = [currentX, currentY, goDir]
+        self.robo.comm.sendPathSelect(node)
         time.sleep(4)
         
         if self.dir and self.dir_refresh:
