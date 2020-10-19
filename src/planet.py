@@ -218,6 +218,12 @@ class Planet:
     def directionToPathSelect(self, currentX, currentY):
         # this direction is sent to mother ship
         # check if there is a running shortestPath
+        if self.target == (currentX, currentY):
+                self.target = None
+                # print('Target reached!')
+                self.robo.comm.send_target_completed('Done')
+                return None
+
         if not self.shortestPath:
             # exploring, check if there is a running explored path
             if not self.exploringPath:
@@ -273,7 +279,7 @@ class Planet:
             # reached target
             if self.target == (currentX, currentY):
                 self.target = None
-                print('Target reached!')
+                # print('Target reached!')
                 return None
             # check if there is a running shortestPath
             if not self.shortestPath:
