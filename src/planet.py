@@ -53,6 +53,13 @@ class Planet:
         self.unseenNodes = []
         self.graph = None
 
+        self.target = None # node
+        self.target_refresh = False # flag
+        self.shortestPath = None # list
+        self.exploringPath = None # list
+        self.dir = None # direction
+        self.dir_refresh = False # flag
+
         self.target_refresh = False
         self.target = None
         self.shortestPath = None
@@ -68,7 +75,9 @@ class Planet:
         """node like:
         {
             currentNode: [(Direction.NORTH, -2), (Direction.EAST, -1)]
-        } Definition: -1 = blocked, -2 = pathAvailable
+        } Definition: -1 = blocked, -2 = path available
+        example:
+            add_unknown_path({(1, 5): [(Direction.EAST, -2), (Direction.WEST, -2)]})
         """
         key = list(node.keys())[0]
         unknown_paths = list(node.values())[0]      
@@ -79,7 +88,7 @@ class Planet:
             for element in unknown_paths:
                 new_unknown_paths.append(element[0])
             self.unknownPaths.update({key: new_unknown_paths})
-        self.viewedNodes.add(key)
+        # self.viewedNodes.add(key)
         print(self.unknownPaths)
 
     # direction with unknown path for node
@@ -101,13 +110,12 @@ class Planet:
         graphList = {}
         for key, value in self.paths.items():
             for targets in value.values():
-                if key in graphList and targets[2] > 0:
-                    # node in dict
-                    graphList[key].append(targets[0])
-
-                elif key not in graphList and targets[2] > 0:
+                if key not in graphList and targets[2] > 0:
                     # add node to dict
                     graphList.update({key: [targets[0]]})
+                elif key in graphList and targets[2] > 0:
+                    # node in dict
+                    graphList[key].append(targets[0])
 
         print('graphList:')
         print(graphList)
@@ -117,18 +125,53 @@ class Planet:
         # interesting_start_nodes.extend(self.unseenNodes)
         # print('interesting_start_nodes(unknown)+unseenNodes:')
         # print(interesting_start_nodes)
-        graph = graphToSearch(graphList, node, interesting_start_nodes) # node is current start node
-        logger.info("graphToSearch done.")
-        target = graph.find_next_node()
-        if target is not None:
+        # graph = graphToSearch(graphList, node, interesting_start_nodes) # node is current start node
+        # logger.info("graphToSearch done.")
+        target = self.find_possible_node(graphList, node, interesting_start_nodes)
+        if target:
             print("Found new target node:")
             print(target)
             return self.shortest_path(node, target)
         else:
-            logger.warning("Something wrong.")
+            logger.warning("Wrong.")
             return None
 
-    # check whether there are unknown directions for node, return boolean
+    def find_possible_node(self, graph:dict, node:tuple, nodesWithUnknownPaths:list):
+        """
+        graph should look like:
+        {
+            node: [connectted node 1, connectted node 2, ...]
+            ...
+            ...
+        }
+
+        graph example:
+            {(1, 1): [(1, 2), (2, 1)], (1, 2): [(1, 1), (2, 3)], ...}
+
+        """
+        # BFS
+        queue = [node]
+        print('queue:')
+        print(queue)
+        parent = {node : None}
+        usedNodes = []
+        
+        while (len(queue) > 0):
+            vertex = queue.pop(0)
+            connections = graph[vertex]
+            
+            for u in connections:
+                if u not in usedNodes:  
+                    queue.append(u)
+                    usedNodes.append(u)
+                    parent[u] = vertex
+            
+                if u in nodesWithUnknownPaths: 
+                    # print('parent(dict): ')
+                    # print(parent)   
+                    return u
+
+    # check whether there are unknown directions for current node, return boolean
     def check_unknown_directions(self, node):
         self.clean_unknown_paths()
         if node in self.unknownPaths:
@@ -139,12 +182,13 @@ class Planet:
             return False
 
     def clean_unknown_paths(self):
+        # format unknown paths, remove unknown paths which indeed known 
         if self.paths:
             for known_key, known_value in self.paths.items():
                 known_directions = known_value.keys()
-                # append viewedNodes
-                if len(known_directions) == 4:
-                    self.viewedNodes.add(known_key)
+                # # append viewedNodes
+                # if len(known_directions) == 4:
+                #     self.viewedNodes.add(known_key)
                 if known_key in self.unknownPaths:
                     unknown_directions = self.unknownPaths[known_key]
                     new_unknown_paths = [
@@ -156,78 +200,107 @@ class Planet:
                     else:
                         self.unknownPaths.pop(known_key)
                         
-            # regenerate list of unseenNodes, not already viewed
-            self.unseenNodes = [
-                node for node in self.paths.keys()
-                if node not in self.viewedNodes
-            ] 
+            # # regenerate list of unseenNodes, not already viewed
+            # self.unseenNodes = [
+            #     node for node in self.paths.keys()
+            #     if node not in self.viewedNodes
+            # ] 
 
     ####################################################################################################
     ####################################################################################################
     ####################################################################################################    
-    
-    # send direction(where to go) to robo
+    #            send direction(where to go) to robo            #
 
     def set_direction(self, startDir):
         startDir = Direction(startDir)
         self.dir = startDir
+        self.dir_refresh = True
 
     def set_target(self, targetX, targetY):
         target = (int(targetX), int(targetX))
         self.target = target
+        self.target_refresh = True
 
-    def go_direction(self, currentX, currentY):
-        goDirection = self.get_direction((currentX, currentY))
-        # goDirection = Direction.NORTH
-        node = [currentX, currentY, goDirection]
-        self.robo.comm.sendPathSelect(node)
-        time.sleep(4)
-        
-        # self.target maybe need as input
-        # self.target_refresh should be controlled by the message somehow
-        if self.target is not None and self.shortestPath is None and not self.target_refresh:
-            path_possible = self.shortest_path(
-                (currentX, currentY), self.target)
-            if path_possible :
-                self.shortestPath = path_possible
-                self.exploringPath = None
-        # check existence of target and reachability
-        elif self.target is not None and self.target_refresh:
-            path_possible = self.shortest_path(
-                (currentX, currentY), self.target)
-            if path_possible is not None:
-                self.shortestPath = path_possible
-                self.exploringPath = None
-            else:
-                self.shortestPath = None
-            self.target_refresh = False
-        # reached target
-        if self.target == (currentX, currentY):
-            self.target = None
-            print('Target reached!')
-            return None
-        # exloring
+    def directionToPathSelect(self, currentX, currentY):
+        # this direction is sent to mother ship
+        # check if there is a running shortestPath
         if not self.shortestPath:
-            # check if there is a running path to a node to discover
+            # exploring, check if there is a running explored path
             if not self.exploringPath:
-                # check where to get search for next target
+                # check if possible direction exists on current node
                 if self.check_unknown_directions((currentX, currentY)):
-                    # search on current node
+                    # search possible direction on current node
                     goDirection = self.get_direction((currentX, currentY))
                 else:
                     # go to a node with unknown path
-                    exploringPath = self.explore_next_node((currentX, currentY))
-                    if exploringPath is None:
+                    self.exploringPath = self.explore_next_node((currentX, currentY))
+                    if self.exploringPath is None:
                         print('Exploring is done, and no nore nodes with unknown paths!')
                         goDirection = None
                     else:
-                        goDirection = exploringPath.pop(0)[1]
+                        goDirection = self.exploringPath[0][1]
             else:
-                goDirection = exploringPath.pop(0)[1]
+                goDirection = self.exploringPath[0][1]
         else:
-            goDirection = self.shortestPath.pop(0)[1]
+            goDirection = self.shortestPath[0][1]
+        return goDirection
+
+
+    def go_direction(self, currentX, currentY):
+        goDir = self.directionToPathSelect(currentX, currentY)
+        self.robo.comm.sendPathSelect(currentX,currentY, goDir)
+        time.sleep(4)
         
-        print('Direction on the current node:'+ str(goDirection))
+        if self.dir and self.dir_refresh:
+            goDirection = self.dir
+            self.dir_refresh = False
+        else:
+            # self.target maybe need as input
+            # self.target_refresh should be controlled by the message somehow
+            if self.target is not None and self.shortestPath is None and not self.target_refresh:
+                print('current target: '+ str(self.target))
+                path_possible = self.shortest_path(
+                    (currentX, currentY), self.target)
+                if path_possible :
+                    self.shortestPath = path_possible
+                    self.exploringPath = None
+            # check existence of target and reachability
+            elif self.target and self.target_refresh:
+                path_possible = self.shortest_path(
+                    (currentX, currentY), self.target)
+                if path_possible:
+                    self.shortestPath = path_possible
+                    self.exploringPath = None
+                else:
+                    self.shortestPath = None
+                self.target_refresh = False
+            # reached target
+            if self.target == (currentX, currentY):
+                self.target = None
+                print('Target reached!')
+                return None
+            # check if there is a running shortestPath
+            if not self.shortestPath:
+                # exploring, check if there is a running explored path
+                if not self.exploringPath:
+                    # check if possible direction exists on current node
+                    if self.check_unknown_directions((currentX, currentY)):
+                        # search possible direction on current node
+                        goDirection = self.get_direction((currentX, currentY))
+                    else:
+                        # go to a node with unknown path
+                        self.exploringPath = self.explore_next_node((currentX, currentY))
+                        if self.exploringPath is None:
+                            print('Exploring is done, and no nore nodes with unknown paths!')
+                            goDirection = None
+                        else:
+                            goDirection = self.exploringPath.pop(0)[1]
+                else:
+                    goDirection = self.exploringPath.pop(0)[1]
+            else:
+                goDirection = self.shortestPath.pop(0)[1]
+            
+            print('Direction on the current node:'+ str(goDirection))
         return goDirection
        
 
@@ -345,9 +418,6 @@ class Planet:
         """
 
         # YOUR CODE FOLLOWS (remove pass, please!)
-        logger.info("Shortest path requested")
-        # create graph
-        logger.info("Creating known graph...")
         graphList = []
         for key, value in self.paths.items():
             for pathElement in value.values():
@@ -386,8 +456,8 @@ class Planet:
                 logger.info(shortestPathInNodeForm)
                 # format path node form to list form
                 shortestPathList = self.nodeFormToListForm(shortestPathInNodeForm)
-                logger.info('shortest Path in List:')
-                logger.info(shortestPathList)
+                print('shortest Path in List:')
+                print(shortestPathList)
                 # format path list to required form: 
                 # such as [((0, 0), <Direction.NORTH: 0>), ((0, 1), <Direction.NORTH: 0>), ...]
                 shortestPath= self.listFormToRequiredForm(shortestPathList)
@@ -449,11 +519,11 @@ class Planet:
                 startEnabled = True
             if edge[0] == TARGET:
                 targetEnabled = True
-        if startEnabled and targetEnabled:
+        if startEnabled and targetEnabled and not (START == TARGET):
             logger.info("Start and target are the VALID elements of planet.")
             return True
         else:
-            logger.warning("Start and target are NOT the valid elements of planet.")
+            logger.warning("Start and target are NOT the valid elements of planet, start and target are equal.")
             return False
        
     ####################################################################################################
@@ -524,81 +594,7 @@ class Planet:
     ####################################################################################################
     ####################################################################################################
     
-class graphToSearch:
-    def __init__(self, graph, node, nodesWithUnknownPaths):
-        self.graph = graph
-        """
-        graph should look like:
-        {
-            node: [connectted node 1, connectted node 2, ...]
-            ...
-            ...
-        }
 
-        graph example:
-            {(1, 1): [(1, 2), (2, 1)], (1, 2): [(1, 1), (2, 3)], ...}
-
-        """
-        self.node = node
-        self.nodesWithUnknownPaths = nodesWithUnknownPaths
-        self.logger = logging.getLogger('graphToSearch')
-        logging.basicConfig(level=logging.DEBUG)
-
-    def find_next_node(self):
-        queue = [[self.node]]
-        print('queue:')
-        print(queue)
-        usedNodes = []
-        foundNode = True
-        level = 1
-        nextNodeElement = 0
-        while foundNode:
-            # check available paths in level
-            if not queue[nextNodeElement]:
-                nextNodeElement += 1
-                level += 1
-            # set next node
-            try:
-                nextNode = queue[nextNodeElement].pop()
-                print('nextNode:')
-                print(nextNode)
-                usedNodes.append(nextNode)
-                print('usedNodes')
-                print(usedNodes)
-            except IndexError:
-                self.logger.error(
-                    "There are undiscovered directions, but they are not reachable!"
-                )
-                return None
-            # get nodes from this node
-            value = self.graph[nextNode]
-            print('value:')
-            print(value)
-            # filter nodes - you shouldnt go back
-            value = [
-                unknown_node for unknown_node in value
-                if unknown_node not in usedNodes
-            ]
-            print('value after filter:')
-            print(value)
-            
-            try:
-                known_data = queue[level]
-                print(known_data)
-                for element in value:
-                    known_data.append(element)
-                queue[level] = known_data
-                
-                # dann erweitern
-            except IndexError:
-                queue.append(value)
-            print(queue)
-            # if one of these nodes is missing return it
-            # else keep on searching
-            for known in queue[level]:
-                # known node has unknown directions
-                if known in self.nodesWithUnknownPaths:
-                    return known
 
 
 
