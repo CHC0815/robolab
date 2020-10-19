@@ -60,12 +60,6 @@ class Planet:
         self.dir = None # direction
         self.dir_refresh = False # flag
 
-        self.target_refresh = False
-        self.target = None
-        self.shortestPath = None
-        self.dir = None
-        self.exploringPath = None
-
     ####################################################################################################
     ####################################################################################################
     ####################################################################################################
@@ -243,6 +237,7 @@ class Planet:
                 goDirection = self.exploringPath[0][1]
         else:
             goDirection = self.shortestPath[0][1]
+        
         return goDirection
 
 
@@ -295,13 +290,14 @@ class Planet:
                             print('Exploring is done, and no nore nodes with unknown paths!')
                             goDirection = None
                         else:
-                            goDirection = self.exploringPath.pop(0)[1]
+                            goDirection = self.exploringPath[0][1]
                 else:
-                    goDirection = self.exploringPath.pop(0)[1]
+                    goDirection = self.exploringPath[0][1]
             else:
-                goDirection = self.shortestPath.pop(0)[1]
+                goDirection = self.shortestPath[0][1]
             
             print('Direction on the current node:'+ str(goDirection))
+        
         return goDirection
        
 
