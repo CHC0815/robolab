@@ -140,8 +140,9 @@ class Communication():
 
             #target message
             elif self.payload['from'] == "server" and self.payload['type'] == "target":
-                target = [self.payload['payload']['targetX'], self.payload['payload']['targetY']]
-                self.robo.planet.set_target(target)
+                _targetX = int(self.payload['payload']['targetX'])
+                _targetY = int(self.payload['payload']['targetY'])
+                self.robo.planet.set_target(_targetX, _targetY)
 
             #complete message
             elif self.payload['from'] == "server" and self.payload['type'] == "done":
