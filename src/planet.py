@@ -211,7 +211,7 @@ class Planet:
         self.dir_refresh = True
 
     def set_target(self, targetX, targetY):
-        target = (int(targetX), int(targetX))
+        target = (int(targetX), int(targetY))
         self.target = target
         self.target_refresh = True
 
@@ -261,7 +261,7 @@ class Planet:
                     self.shortestPath = path_possible
                     self.exploringPath = None
             # check existence of target and reachability
-            elif self.target and self.target_refresh:
+            elif self.target is not None and self.target_refresh:
                 path_possible = self.shortest_path(
                     (currentX, currentY), self.target)
                 if path_possible:
