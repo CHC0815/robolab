@@ -108,7 +108,7 @@ class Robot():
                 time.sleep(4)
                 x, y = self.odometry.getNodeCoord()
 
-                self.moveCm(6)
+                self.moveCm(7)
                 time.sleep(0.5)
 
                 if not self.isNodeAlreadyScanned(x, y):
@@ -173,7 +173,7 @@ class Robot():
                 self.rotateByDegGyro(10)
                 self.rotateToLine()
                 self.odometry.addOffset(180)
-                node = [self.odometry.oldNode[0], self.odometry.oldNode[1], self.odometry.fromDirection]
+                node = [self.odometry.currentNode[0], self.odometry.currentNode[1], self.odometry.fromDirection]
                 node2 = [node[0], node[1], self.odometry.oppositeDirection(node[2])]
                 self.comm.sendPath(node, node2, "blocked")
                 time.sleep(2)
