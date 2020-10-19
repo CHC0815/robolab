@@ -94,7 +94,7 @@ class Communication():
             elif self.payload['from'] == "server" and self.payload['type'] == "done":
                 _complete_message = self.payload['payload']['message']
                 logger.debug(_complete_message)
-                self.robo.finished()
+                self.robo.isRunning = False
 
         #planet messages
         elif topic == "planet/" + self._planetName + "/" + str(config.general.group_id):

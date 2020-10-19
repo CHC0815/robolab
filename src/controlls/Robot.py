@@ -60,6 +60,8 @@ class Robot():
         self.startDirection = 0
         self.discoveredNodes = []
 
+        self.isRunning = True
+
 
     def scanNode(self):
         """
@@ -93,6 +95,10 @@ class Robot():
         if not self.isCalibrated:
             self.calibrate()
             self.isCalibrated = True
+
+        if not self.isRunning:
+            self.finished()
+            return
 
         while True:
             status = self.lineFolower()
@@ -457,7 +463,7 @@ class Robot():
         return direction
 
     def finished(self):
-        print('==========FERTIG==========')
+        logger.debug('==========FERTIG==========')
         snd.play_victory()
         self.comm.stopp_comm()
         quit()
