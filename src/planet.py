@@ -116,11 +116,14 @@ class Planet:
         interesting_start_nodes = list(self.unknownPaths.keys())
         print('interesting_start_nodes(unknown):')
         print(interesting_start_nodes)
-        interesting_start_nodes.extend(self.unseenNodes)
-        print('interesting_start_nodes(unknown)+unseenNodes:')
-        print(interesting_start_nodes)
+        
+        if not interesting_start_nodes:
+            interesting_start_nodes.extend(self.unseenNodes)
+            print('interesting_start_nodes(unknown)+unseenNodes:')
+            print(interesting_start_nodes)
 
-        target = self.find_possible_node(graph, node, interesting_start_nodes)
+            target = self.find_possible_node(graphList, node, interesting_start_nodes)
+        
         if target:
             print("Found new target node:")
             print(target)
