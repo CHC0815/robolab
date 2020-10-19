@@ -58,6 +58,7 @@ class Robot():
 
         self.oldNodePathes = []
         self.startDirection = 0
+
         self.discoveredNodes = []
 
         self.isRunning = True
@@ -118,7 +119,7 @@ class Robot():
 
                 if not self.isNodeAlreadyScanned(x, y):
                     pathes  = self.scanNode()
-                    self.discoveredNodes.append([x, y])
+                    self.discoveredNodes.append((x, y))
                     
                     # add node and its directions to the list
                     node_pathes = []
@@ -476,7 +477,7 @@ class Robot():
 
     def isNodeAlreadyScanned(self, x, y):
         
-        node = [x, y]
+        node = (x, y)
 
         inList = (node in self.discoveredNodes)
         logger.debug('Current node already scanned: ' + str(inList))
