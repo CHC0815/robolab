@@ -290,14 +290,13 @@ class Planet:
                             print('Exploring is done, and no nore nodes with unknown paths!')
                             goDirection = None
                         else:
-                            goDirection = self.exploringPath[0][1]
+                            goDirection = self.exploringPath.pop(0)[1]
                 else:
-                    goDirection = self.exploringPath[0][1]
+                    goDirection = self.exploringPath.pop(0)[1]
             else:
-                goDirection = self.shortestPath[0][1]
+                goDirection = self.shortestPath.pop(0)[1]
             
-            print('Direction on the current node:'+ str(goDirection))
-        
+        print('Direction on the current node:'+ str(goDirection))
         return goDirection
        
 
