@@ -82,7 +82,7 @@ class Planet:
             for element in unknown_paths:
                 new_unknown_paths.append(element[0])
             self.unknownPaths.update({key: new_unknown_paths})
-        # self.viewedNodes.add(key)
+        self.viewedNodes.add(key)
         print(self.unknownPaths)
 
     # direction with unknown path for node
@@ -97,7 +97,7 @@ class Planet:
     # returns path to next node from node
     def explore_next_node(self, node):
         # maybe there are no paths to discover
-        if not self.unknownPaths: # and not self.unseenNodes
+        if not self.unknownPaths and not self.unseenNodes:
             logger.info("Every node discovered. Exploring finished.")
             return None
         # creat graphToSearch
@@ -116,12 +116,11 @@ class Planet:
         interesting_start_nodes = list(self.unknownPaths.keys())
         print('interesting_start_nodes(unknown):')
         print(interesting_start_nodes)
-        # interesting_start_nodes.extend(self.unseenNodes)
-        # print('interesting_start_nodes(unknown)+unseenNodes:')
-        # print(interesting_start_nodes)
-        # graph = graphToSearch(graphList, node, interesting_start_nodes) # node is current start node
-        # logger.info("graphToSearch done.")
-        target = self.find_possible_node(graphList, node, interesting_start_nodes)
+        interesting_start_nodes.extend(self.unseenNodes)
+        print('interesting_start_nodes(unknown)+unseenNodes:')
+        print(interesting_start_nodes)
+
+        target = self.find_possible_node(graph, node, interesting_start_nodes)
         if target:
             print("Found new target node:")
             print(target)
@@ -143,7 +142,7 @@ class Planet:
             {(1, 1): [(1, 2), (2, 1)], (1, 2): [(1, 1), (2, 3)], ...}
 
         """
-        # BFS
+        
         queue = [node]
         print('queue:')
         print(queue)
@@ -176,34 +175,33 @@ class Planet:
             return False
 
     def clean_unknown_paths(self):
-    #    # format unknown paths, remove unknown paths which indeed known 
-    #    if self.paths:
-    #        for known_key, known_value in self.paths.items():
-    #            known_directions = known_value.keys()
-    #            # # append viewedNodes
-    #            # if len(known_directions) == 4:
-    #            #     self.viewedNodes.add(known_key)
-    #            if known_key in self.unknownPaths:
-    #                unknown_directions = self.unknownPaths[known_key]
-    #                new_unknown_paths = [
-    #                    item for item in unknown_directions
-    #                    if item not in known_directions
-    #                ]
-    #                if new_unknown_paths:
-    #                    self.unknownPaths[known_key] = new_unknown_paths
-    #                else:
-    #                    self.unknownPaths.pop(known_key)
-    #                    
-            # # regenerate list of unseenNodes, not already viewed
-            # self.unseenNodes = [
-            #     node for node in self.paths.keys()
-            #     if node not in self.viewedNodes
-            # ] 
+        # format unknown paths, remove unknown paths which indeed known 
+        if self.paths:
+            for known_key, known_value in self.paths.items():
+                known_directions = known_value.keys()
+                # append viewedNodes
+                if len(known_directions) == 4:
+                   self.viewedNodes.add(known_key)
+                if known_key in self.unknownPaths:
+                    unknown_directions = self.unknownPaths[known_key]
+                    new_unknown_paths = [
+                        item for item in unknown_directions
+                        if item not in known_directions
+                    ]
+                    if new_unknown_paths:
+                        self.unknownPaths[known_key] = new_unknown_paths
+                    else:
+                        self.unknownPaths.pop(known_key)
+                        
+            # regenerate list of unseenNodes, not already viewed
+            self.unseenNodes = [
+                node for node in self.paths.keys()
+                if node not in self.viewedNodes
+            ] 
 
     ####################################################################################################
     ####################################################################################################
     ####################################################################################################    
-    #            send direction(where to go) to robo            #
 
     def set_direction(self, startDir):
         startDir = Direction(startDir)
@@ -237,7 +235,7 @@ class Planet:
                     self.exploringPath = self.explore_next_node((currentX, currentY))
                     print(self.exploringPath)
                     if self.exploringPath is None:
-                        print('Exploring is done, and no nore nodes with unknown paths!')
+                        print('Exploring is done, and no more nodes with unknown paths!')
                         self.robo.isRunning = True
                         goDirection = None
                     else:
@@ -300,6 +298,7 @@ class Planet:
                             
                             time.sleep(3)
                             logger.debug('Moin')
+                            
                             if not self.target == None:
                                 logger.debug('servus')
                                 path_possible = self.shortest_path((currentX, currentY), self.target)
@@ -311,7 +310,7 @@ class Planet:
                                     print('Direction on the current node:'+ str(goDirection))
                                     return goDirection
 
-                            print('Exploring is done, and no nore nodes with unknown paths!')
+                            print('Exploring is done, and no more nodes with unknown paths!')
                             goDirection = None
                         else:
                             goDirection = self.exploringPath.pop(0)[1]
