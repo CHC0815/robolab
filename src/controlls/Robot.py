@@ -130,9 +130,11 @@ class Robot():
                     }
                     self.planet.add_unknown_path(node)
                 else:
-                    time.sleep(2)
+                    time.sleep(4)
 
                 dir = self.planet.go_direction(x, y)
+                if dir == None:
+                    return
                 dir = self.translateRotationToLocal(dir)
 
                 self.rotateByDegGyro(45)

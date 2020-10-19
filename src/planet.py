@@ -222,6 +222,7 @@ class Planet:
                 self.target = None
                 # print('Target reached!')
                 self.robo.comm.send_target_completed('Done')
+                time.sleep(3)
                 return None
 
         if not self.shortestPath:
