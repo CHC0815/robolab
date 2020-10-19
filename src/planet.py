@@ -176,24 +176,24 @@ class Planet:
             return False
 
     def clean_unknown_paths(self):
-        # format unknown paths, remove unknown paths which indeed known 
-        if self.paths:
-            for known_key, known_value in self.paths.items():
-                known_directions = known_value.keys()
-                # # append viewedNodes
-                # if len(known_directions) == 4:
-                #     self.viewedNodes.add(known_key)
-                if known_key in self.unknownPaths:
-                    unknown_directions = self.unknownPaths[known_key]
-                    new_unknown_paths = [
-                        item for item in unknown_directions
-                        if item not in known_directions
-                    ]
-                    if new_unknown_paths:
-                        self.unknownPaths[known_key] = new_unknown_paths
-                    else:
-                        self.unknownPaths.pop(known_key)
-                        
+    #    # format unknown paths, remove unknown paths which indeed known 
+    #    if self.paths:
+    #        for known_key, known_value in self.paths.items():
+    #            known_directions = known_value.keys()
+    #            # # append viewedNodes
+    #            # if len(known_directions) == 4:
+    #            #     self.viewedNodes.add(known_key)
+    #            if known_key in self.unknownPaths:
+    #                unknown_directions = self.unknownPaths[known_key]
+    #                new_unknown_paths = [
+    #                    item for item in unknown_directions
+    #                    if item not in known_directions
+    #                ]
+    #                if new_unknown_paths:
+    #                    self.unknownPaths[known_key] = new_unknown_paths
+    #                else:
+    #                    self.unknownPaths.pop(known_key)
+    #                    
             # # regenerate list of unseenNodes, not already viewed
             # self.unseenNodes = [
             #     node for node in self.paths.keys()
@@ -235,6 +235,7 @@ class Planet:
                 else:
                     # go to a node with unknown path
                     self.exploringPath = self.explore_next_node((currentX, currentY))
+                    print(self.exploringPath)
                     if self.exploringPath is None:
                         print('Exploring is done, and no nore nodes with unknown paths!')
                         self.robo.isRunning = True

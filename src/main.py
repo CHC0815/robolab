@@ -54,7 +54,7 @@ def run():
     # planetName="Examinator-A-1337r"
     # planetName="Mehl"
     
-    c = Communication(client, planetName="Examinator-A-1337r") 
+    c = Communication(client, planetName="Reis") 
     r = Robot(c)
     c.init(r)
     r.run()
