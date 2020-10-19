@@ -90,6 +90,12 @@ class Communication():
                 _startDir = int(self.payload['payload']['startOrientation'])
                 self.robo.odometry.setupRobo(_startX, _startY, _startDir)
 
+            #complete message
+            elif self.payload['from'] == "server" and self.payload['type'] == "done":
+                _complete_message = self.payload['payload']['message']
+                logger.debug(_complete_message)
+                self.robo.finished()
+
         #planet messages
         elif topic == "planet/" + self._planetName + "/" + str(config.general.group_id):
             #path message
@@ -144,10 +150,6 @@ class Communication():
                 _targetY = int(self.payload['payload']['targetY'])
                 self.robo.planet.set_target(_targetX, _targetY)
 
-            #complete message
-            elif self.payload['from'] == "server" and self.payload['type'] == "done":
-                _complete_message = self.payload['payload']['message']
-                self.robo.finished()
 
         #valid_message
         elif topic == "comtest/" + str(config.general.group_id) + " (Invalid)":

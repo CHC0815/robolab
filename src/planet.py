@@ -220,7 +220,7 @@ class Planet:
         # check if there is a running shortestPath
         if self.target == (currentX, currentY):
                 self.target = None
-                # print('Target reached!')
+                logger.debug('Target reached!')
                 self.robo.comm.send_target_completed('Done')
                 time.sleep(3)
                 return None
