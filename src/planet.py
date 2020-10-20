@@ -116,18 +116,22 @@ class Planet:
         interesting_start_nodes = list(self.unknownPaths.keys())
         print('interesting_start_nodes(unknown):')
         print(interesting_start_nodes)
-        
+
         if not interesting_start_nodes:
             interesting_start_nodes.extend(self.unseenNodes)
             print('interesting_start_nodes(unknown)+unseenNodes:')
             print(interesting_start_nodes)
+    
 
-            target = self.find_possible_node(graphList, node, interesting_start_nodes)
-        
-        if target:
+        # _target = None
+
+        # if not interesting_start_nodes:
+        _target = self.find_possible_node(graphList, node, interesting_start_nodes)
+    
+        if not _target == None:
             print("Found new target node:")
-            print(target)
-            return self.shortest_path(node, target)
+            print(_target)
+            return self.shortest_path(node, _target)
         else:
             logger.warning("Wrong.")
             return None
@@ -307,7 +311,7 @@ class Planet:
                                 path_possible = self.shortest_path((currentX, currentY), self.target)
                                 if path_possible:
                                     logger.debug('moin 2')
-                                    self.shortest_path = path_possible
+                                    self.shortestPath = path_possible
                                     self.exploringPath = None
                                     goDirection = self.shortestPath.pop(0)[1]
                                     print('Direction on the current node:'+ str(goDirection))
@@ -428,7 +432,6 @@ class Planet:
 
         # YOUR CODE FOLLOWS (remove pass, please!)
         return self.paths
-
 
     def shortest_path(self, start: Tuple[int, int], target: Tuple[int, int]):
         """

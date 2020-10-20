@@ -139,7 +139,7 @@ class Robot():
                     time.sleep(3)
 
                 dir = self.planet.go_direction(x, y)
-                if dir == None and not self.isRunning:
+                if dir == None and not self.isRunning   :
                     self.finished()
                     return
                 dir = self.translateRotationToLocal(dir)
