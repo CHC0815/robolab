@@ -44,7 +44,7 @@ class Odometry:
         
         # first node was set by mothership
         if self.firstNode:
-            self.robot.comm.set_testplanet(self.robot.comm._planetName)
+            # self.robot.comm.set_testplanet(self.robot.comm._planetName)
             self.robot.comm.send_ready()
             time.sleep(3)
             return
